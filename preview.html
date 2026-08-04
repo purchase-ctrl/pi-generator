@@ -130,11 +130,9 @@ function renderInvoice(r){
     </div>`;
 
   paperEl.innerHTML = `
-    <table class="paper-table">
-      <thead><tr><td>${headHtml}</td></tr></thead>
-      <tfoot><tr><td>${footHtml}</td></tr></tfoot>
-      <tbody><tr><td>${bodyHtml}</td></tr></tbody>
-    </table>
+    <div class="paper-head">${headHtml}</div>
+    <div class="paper-body">${bodyHtml}</div>
+    <div class="paper-foot">${footHtml}</div>
   `;
 }
 

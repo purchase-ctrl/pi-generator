@@ -119,10 +119,6 @@ textarea{resize:vertical;min-height:56px;}
 /* ---------- Invoice paper (preview.html) ---------- */
 .paper-outer{display:flex;justify-content:center;}
 .paper{width:100%;max-width:780px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;}
-.paper-table{width:100%;border-collapse:collapse;}
-.paper-table > thead > tr > td,
-.paper-table > tfoot > tr > td,
-.paper-table > tbody > tr > td{padding:0;}
 .paper-actions{max-width:780px;margin:0 auto 16px;display:flex;gap:10px;flex-wrap:wrap;}
 .paper-actions .btn{width:auto;padding:10px 18px;}
 .paper-actions .btn-primary{margin-top:0;}
@@ -215,16 +211,25 @@ table.log tbody tr:hover{background:#FFF7F1;}
 
 /* ---------- Print ---------- */
 @media print{
-  @page{ margin:5mm; }
+  @page{ size: A4; margin: 8mm; }
   :root{ font-size:11px; }
   body{background:#fff;}
   .topbar,.paper-actions,.page-head{display:none !important;}
   .page-wrap{padding:0;max-width:100%;}
-  .paper{box-shadow:none;max-width:100%;}
-  /* Repeat the letterhead header/footer on every printed page: browsers
-     natively repeat a real <table>'s <thead>/<tfoot> content on each
-     page the table's rows break across — this only works reliably with
-     actual table markup, not CSS-emulated table display values. */
+  .paper{box-shadow:none;max-width:100%;position:relative;}
+
+  /* Pin the letterhead header to the top and footer to the bottom of
+     EVERY printed page — position:fixed in a print context repeats an
+     element at the same spot on each page, unlike normal flow content. */
+  .paper-head{position:fixed;top:0;left:0;right:0;background:#fff;}
+  .paper-foot{position:fixed;bottom:0;left:0;right:0;background:#fff;}
+
+  /* Reserve exactly that much space at the top/bottom of the flowing
+     content so it never renders underneath the fixed header/footer.
+     These heights are sized to each company's actual letterhead artwork. */
+  .paper[data-theme="cosmetic"] .paper-body{padding-top:56mm;padding-bottom:36mm;}
+  .paper[data-theme="industries"] .paper-body{padding-top:74mm;padding-bottom:54mm;}
+
   .co-id{padding-top:8px !important;padding-bottom:2px !important;}
   .co-id p{max-width:none;}
   .co-id h2{margin-bottom:0 !important;}
