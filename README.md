@@ -1,123 +1,78 @@
-# Artwork Compliance Checker — Standalone App
+# Sunshine PI Desk
 
-A web app that checks packaging artwork PDFs, built as **two separate tabs**:
+A Proforma Invoice tool for **Sunshine Cosmetic Pvt. Ltd.** and **Sunshine Industries**, with real per-person login: everyone gets their own account, and **each person can only ever see and open PIs they created themselves** — enforced by the database, not just hidden in the browser.
 
-**Part 1 tab** — spelling, mandatory field checklist (vs.
-`ARTWORK_DECORATION_FINAL`), and batch coding box size measurement (min.
-18mm x 18mm) with a ruler overlay. Has its own upload, its own "Run check"
-button, and a Print Checklist button (pass/fail-only report + score +
-verdict + the artwork itself, 2 printed pages).
+## The pages
 
-**Part 2 tab** — a separate, focused ingredient/shelf-life cross-check
-against a formulation code from your uploaded spreadsheet. Has its own
-upload and its own "Run ingredient cross-check" button — entirely
-independent of Part 1, and faster since it isn't also computing
-spelling/compliance/size.
+1. **`login.html`** — Sign up (name + email + password) or log in. This is the front door — every other page redirects here if you're not signed in.
+2. **`index.html` — New PI.** Pick the selling company, enter the client's details, items, and terms. "Created by" is no longer a dropdown — it's automatically your account's name.
+3. **`preview.html` — Result.** The generated Proforma Invoice, with the real header/footer artwork for whichever company was selected. Print/Save-as-PDF button.
+4. **`log.html` — Log.** Every PI **you've** created — nobody else's ever appears here, even by direct link.
+5. **`account.html`** — See your name/email, and change your password (always asks for your current password first).
 
-(Part 1 still has an optional formulation-code field too, if you want the
-ingredient check folded into one combined run instead of using the
-separate Part 2 tab.)
+## How the security actually works now
 
-Your Anthropic API key lives only on the server (as an environment
-variable), never in the browser — safe to share with your team or open in
-any browser, on any device.
+Previously, "locking" a PI was a passcode checked in the browser — someone with dev tools could bypass it. This version is different: PIs live in a real database (Supabase/Postgres), protected by a **Row Level Security** policy that says *"you may only ever see rows where `user_id` matches your own logged-in account."* That check happens on the server, every time, for every request — there is no client-side code path that can see around it. If you're not logged in as the person who created a PI, the database simply won't return it — Sunshine PI Desk shows "No PI found," not because it's hidden, but because it genuinely isn't sent to you.
 
-## How it works
+## One-time setup (you only do this once)
 
-```
-Your browser                     Your server (Vercel)              Anthropic
--------------                    --------------------              ---------
-1. Upload a PDF, optionally
-   enter a formulation code
-2. Text extracted + page 1
-   rendered as an image (pdf.js)
-3. POST /api/check         --->  4. Makes two focused        --->   5. Call A: spelling +
-   (no API key sent)                 calls with your API key           compliance + formulation
-                                                                     6. Call B: batch box size
-                            <---  7. Merges + returns one     <---
-                                     combined result
-8. Results rendered, incl.
-   the size-measurement
-   ruler overlay
-```
+### 1. Create a free Supabase project
+1. Go to **supabase.com** → sign up → **New project**.
+2. Pick a name and a database password (save that password somewhere safe), choose a region close to you, and create the project. It takes a minute or two to provision.
 
-Two separate AI calls are made per check (not one) so that a failure in
-the visual size-measurement task never blocks your spelling/compliance
-results — see `api/check.js` for details.
+### 2. Create the database table
+1. In your new project, open **SQL Editor** (left sidebar) → **New query**.
+2. Open `supabase-setup.sql` (included in this folder), copy all of it, paste it into the editor, and click **Run**.
+3. This creates the `pis` table and the Row Level Security policy described above.
 
-## Files in this project
+### 3. (Recommended) Turn off email confirmation, for a smoother first login
+By default Supabase emails a confirmation link on signup. For an internal team tool this is usually unnecessary friction:
+1. Go to **Authentication → Providers → Email**.
+2. Turn off **"Confirm email"**.
+3. Save.
 
-- `index.html` — the app itself (two tabs, upload, run, results UI)
-- `api/check.js` — Part 1's backend function (spelling, compliance,
-  size, and Part 1's own optional formulation cross-check)
-- `api/check-ingredients.js` — Part 2's dedicated backend function
-  (ingredient/shelf-life cross-check only)
-- `package.json`, `.gitignore`, `.env.example` — project setup files
+(If you'd rather keep email confirmation on, that's fine too — people will just need to click the link in their inbox once after signing up, before they can log in.)
 
-## Deploy it (Vercel — free, ~5 minutes)
+### 4. Connect the site to your project
+1. In Supabase, go to **Project Settings → API**.
+2. Copy the **Project URL** and the **anon public** key.
+3. Open `supabase-config.js` in this folder and paste them in:
+   ```js
+   const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
+   const SUPABASE_ANON_KEY = 'eyJhbGciOi...(long string)';
+   ```
+4. Save the file.
 
-**1. Get an Anthropic API key**
-Go to [console.anthropic.com](https://console.anthropic.com) → API Keys →
-Create Key. Copy it — you'll need it in step 4.
+These two values are meant to be public (every visitor's browser needs them) — they are **not** secret. The real protection is the Row Level Security policy from step 2, not these keys.
 
-**2. Get this project onto Vercel**
-- Create a free account at [vercel.com](https://vercel.com)
-- Put this folder in a GitHub repository (create a new repo, then use
-  GitHub's "uploading an existing file" link to add everything — make sure
-  `index.html` and the `api` folder end up at the top level of the repo,
-  not nested inside another folder)
-- In Vercel, click **Add New → Project**, then import that GitHub repo
-
-**3. Deploy**
-Vercel detects `index.html` and `api/check.js` automatically — no build
-configuration needed. Click **Deploy**.
-
-**4. Add your API key**
-Project → **Settings → Environment Variables**
-- Name: `ANTHROPIC_API_KEY`
-- Value: the key from step 1
-- Make sure **Production** is checked (not just Development)
-- **Save**, then go to **Deployments → Redeploy**
-
-**5. Open the URL Vercel gives you** — done.
-
-## Testing locally before deploying (optional)
-
+### 5. Deploy (same as before)
 ```bash
-npm i -g vercel
-cp .env.example .env      # then paste your real key into .env
-vercel dev
+cd sunshine-pi-desk
+git init
+git add .
+git commit -m "Sunshine PI Desk with login"
+git branch -M main
+git remote add origin https://github.com/<your-username>/sunshine-pi-desk.git
+git push -u origin main
+```
+Then on vercel.com: **Add New… → Project → import the repo → Framework preset: Other** → **Deploy**.
+
+### 6. Create your team's accounts
+Open your live site → it'll land on the login page → click **"Need an account? Sign up"** → each person enters their name, email, and a password. That's their permanent login from then on.
+
+## Files
+```
+login.html            Sign up / log in
+index.html             New PI form
+preview.html           Result / generated invoice
+log.html                Your PI log
+account.html           Account info + change password
+style.css                Shared styling incl. both company letterhead themes
+app.js                    Shared logic: Supabase client, auth, data, formatting
+supabase-config.js   Your project's URL + key (fill in once, see setup above)
+supabase-setup.sql   Database schema — run this once in Supabase's SQL Editor
+images/                  Real header/footer artwork from each company's Word letterhead
 ```
 
-## Your ingredient/formulation sheet (Part 2)
-
-This is a **static upload** — no live sync. Upload your spreadsheet once
-in the app's "Ingredient & shelf-life reference" panel; it's remembered
-on that device (via browser storage) until you remove it or upload a
-different file. If you edit your source spreadsheet, you need to
-re-upload it in the app for the change to take effect.
-
-Your sheet needs, at minimum, one row per formulation code with:
-- **Formulation Code**
-- **Base Ingredients** (comma-separated)
-- **Shelf Life** (e.g. "36 Months")
-
-Optional columns it also understands: **Description**, **Hero Ingredient**
-(added at the end before preservative), **Additional Ingredients/Notes**
-(free-text constraints, e.g. "Vegan — no beeswax"). A "Same as [other
-product]" value in Base Ingredients is automatically resolved by matching
-that text against another row's Description.
-
-## Updating the Part 1 checklist or the 18mm minimum
-
-Both live in **two places** and should be kept in sync:
-- `api/check.js` — `REFERENCE_RULES` (grades the artwork) and the
-  minimum-size wording in the size task's system prompt
-- `index.html` — `REFERENCE_RULES` (display only) and `MIN_MM` inside
-  `renderBatchSizeSection`
-
-## Cost note
-
-Each check makes two API calls to Claude (spelling/compliance/formulation,
-plus batch box size). Costs are billed to your Anthropic account per the
-API's standard pricing.
+## A note on going from the old version
+If you were using the earlier localStorage-based version, that data lived only in each person's browser and does **not** carry over automatically — this version starts with an empty database. Old PIs that matter can simply be re-created once everyone has an account.

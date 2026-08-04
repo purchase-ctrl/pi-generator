@@ -1,1172 +1,321 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Artwork Compliance Checker</title>
-<style>
-  :root{
-    --ink:#182635;
-    --ink-soft:#5c6b7a;
-    --paper:#fafaf8;
-    --panel:#ffffff;
-    --line:#e4e2db;
-    --brand:#2e6ba3;
-    --brand-deep:#1b3a57;
-    --brand-tint:#eef4fa;
-    --pass:#1f7a52;
-    --pass-bg:#eaf6ef;
-    --fail:#c23b23;
-    --fail-bg:#fdeeea;
-    --warn:#a3690a;
-    --warn-bg:#fbf1de;
-    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --mono: 'IBM Plex Mono', ui-monospace, monospace;
-  }
-  *{ box-sizing:border-box; }
-  html, body{ margin:0; padding:0; background:var(--paper); }
-  body{ font-family:var(--sans); color:var(--ink); }
-  .wrap{ max-width:920px; margin:0 auto; padding:28px 20px 48px; }
-
-  .masthead{ margin-bottom:28px; }
-  .masthead .eyebrow{
-    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-    color:var(--brand); margin-bottom:6px;
-  }
-  .masthead h1{ font-size:26px; margin:0 0 8px; font-weight:700; color:var(--brand-deep); letter-spacing:-.2px; }
-  .masthead p{ margin:0; font-size:14.5px; color:var(--ink-soft); line-height:1.5; max-width:60ch; }
-
-  .part-tag{
-    display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-    padding:4px 10px; border-radius:20px; margin-bottom:10px;
-  }
-  .part-tag.p1{ color:var(--brand); background:var(--brand-tint); }
-  .part-tag.p2{ color:#7a3fa3; background:#f3ecfa; }
-
-  .tabnav{ display:flex; gap:8px; margin-bottom:20px; border-bottom:2px solid var(--line); }
-  .tab-btn{
-    padding:11px 18px; background:none; border:none; font-size:13.5px; font-weight:600;
-    color:var(--ink-soft); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px;
-  }
-  .tab-btn.active{ color:var(--brand-deep); border-bottom-color:var(--brand-deep); }
-  .tab-btn:hover:not(.active){ color:var(--ink); }
-
-  .panel{
-    background:var(--panel); border:1px solid var(--line); border-radius:12px;
-    padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(20,30,45,.04);
-  }
-  .panel-title{ font-size:15px; font-weight:700; color:var(--ink); margin:0 0 4px; }
-  .panel-sub{ font-size:13px; color:var(--ink-soft); margin:0 0 16px; }
-
-  .drop{
-    border:1.5px dashed #c7cdd6; border-radius:10px; padding:32px 20px; text-align:center;
-    cursor:pointer; transition:border-color .15s, background .15s; background:#fcfcfb; display:block;
-  }
-  .drop:hover, .drop.drag{ border-color:var(--brand); background:var(--brand-tint); }
-  .drop input{ display:none; }
-  .drop .icon{ font-size:28px; margin-bottom:8px; }
-  .drop .main{ font-size:14px; font-weight:600; color:var(--ink); }
-  .drop .sub{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
-
-  .filerow{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:12px 16px; background:var(--brand-tint); border:1px solid #d3e2ef; border-radius:8px;
-    font-size:13.5px; margin-top:14px;
-  }
-  .filerow .name{ color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
-  .filerow button{
-    background:#fff; border:1px solid #c7cdd6; color:var(--ink-soft); font-size:12px;
-    padding:6px 12px; border-radius:6px; cursor:pointer;
-  }
-  .filerow button:hover{ border-color:var(--fail); color:var(--fail); }
-
-  .field-group{ margin-top:14px; }
-  .field-label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink); margin-bottom:6px; }
-  .text-input{
-    width:100%; padding:10px 12px; border:1px solid #c7cdd6; border-radius:8px; font-size:14px;
-    font-family:var(--sans); color:var(--ink); background:#fcfcfb;
-  }
-  .text-input:focus{ outline:none; border-color:var(--brand); background:#fff; }
-  .field-hint{ font-size:12px; margin-top:6px; min-height:16px; }
-  .field-hint.ok{ color:var(--pass); }
-  .field-hint.warn{ color:var(--warn); }
-  .field-hint.muted{ color:var(--ink-soft); }
-
-  .run-btn{
-    margin-top:16px; width:100%; padding:13px; background:var(--brand-deep); color:#fff;
-    border:none; border-radius:8px; font-size:14px; font-weight:600;
-    cursor:pointer; transition:background .15s;
-  }
-  .run-btn:hover:not(:disabled){ background:var(--brand); }
-  .run-btn:disabled{ background:#c3c9d1; cursor:not-allowed; }
-
-  .connect-btn{
-    padding:10px 16px; background:var(--brand-deep); color:#fff; border:none; border-radius:8px;
-    font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
-  }
-  .connect-btn:hover{ background:var(--brand); }
-  .or-divider{
-    display:flex; align-items:center; gap:12px; margin:18px 0 14px; font-size:11.5px;
-    color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em;
-  }
-  .or-divider::before, .or-divider::after{ content:""; flex:1; height:1px; background:var(--line); }
-
-  details.ref summary{
-    cursor:pointer; font-size:13.5px; font-weight:600; color:var(--brand); list-style:none; outline:none;
-  }
-  details.ref summary::-webkit-details-marker{ display:none; }
-  details.ref summary::before{ content:"▸ "; }
-  details.ref[open] summary::before{ content:"▾ "; }
-  .ref-row{
-    padding:10px 0; border-top:1px solid #eeece5; display:flex; gap:12px; font-size:13px; line-height:1.55;
-  }
-  .ref-row:first-child{ border-top:none; }
-  .ref-tag{
-    font-size:10.5px; font-weight:700; color:var(--brand); background:var(--brand-tint);
-    padding:3px 8px; border-radius:5px; height:fit-content; white-space:nowrap; margin-top:1px;
-  }
-
-  .sync-status{
-    display:flex; align-items:center; gap:10px; font-size:13px; padding:12px 14px;
-    border-radius:8px; background:var(--brand-tint); color:var(--ink);
-  }
-  .sync-status.ok{ background:var(--pass-bg); color:var(--pass); }
-  .sync-status.warn{ background:var(--warn-bg); color:var(--warn); }
-  .sync-status .spinner{ margin:0; }
-
-  .status{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); margin-top:16px; }
-  .spinner{
-    width:15px; height:15px; border:2px solid #e4e2db; border-top-color:var(--brand);
-    border-radius:50%; animation:spin .8s linear infinite; flex-shrink:0;
-  }
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-
-  .error{
-    background:var(--fail-bg); border:1px solid #f0c6ba; color:#8a2a15; padding:14px 16px;
-    border-radius:8px; font-size:13px; margin-top:14px; line-height:1.5;
-  }
-  .error .detail{ font-family:var(--mono); font-size:11.5px; color:#a1442e; margin-top:6px; word-break:break-word; }
-  .error .retry-link{ color:var(--brand-deep); text-decoration:underline; cursor:pointer; font-weight:600; }
-
-  .scorehead{ display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
-  .gauge{ position:relative; width:100px; height:100px; flex-shrink:0; }
-  .gauge svg{ width:100%; height:100%; transform:rotate(-90deg); }
-  .gauge .track{ fill:none; stroke:#edece5; stroke-width:9; }
-  .gauge .fill{ fill:none; stroke-width:9; stroke-linecap:round; transition:stroke-dasharray 1s ease; }
-  .gauge .num{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; }
-  .gauge .num b{ font-size:24px; line-height:1; }
-  .gauge .num span{ font-size:9.5px; letter-spacing:.06em; color:var(--ink-soft); text-transform:uppercase; margin-top:3px; }
-
-  .scoremeta{ flex:1; min-width:220px; }
-  .stamp{
-    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700;
-    padding:6px 12px; border-radius:20px; margin-bottom:10px;
-  }
-  .stamp.pass{ color:var(--pass); background:var(--pass-bg); }
-  .stamp.warn{ color:var(--warn); background:var(--warn-bg); }
-  .stamp.fail{ color:var(--fail); background:var(--fail-bg); }
-  .summary-text{ font-size:14px; line-height:1.6; color:var(--ink); margin:0; }
-
-  .section-h{ font-size:15px; font-weight:700; color:var(--ink); margin:0 0 4px; }
-  .section-sub{ font-size:12.5px; color:var(--ink-soft); margin:0 0 14px; }
-
-  .check-row{
-    display:grid; grid-template-columns:22px 1fr auto; gap:12px; align-items:start;
-    padding:13px 0; border-top:1px solid #f0efe9; font-size:13.5px;
-  }
-  .check-row:first-child{ border-top:none; }
-  .check-icon{ font-size:15px; line-height:1.4; }
-  .check-field{ font-weight:600; color:var(--ink); }
-  .check-note{ color:var(--ink-soft); margin-top:3px; font-size:12.5px; line-height:1.5; }
-  .chip{
-    font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; height:fit-content; white-space:nowrap;
-  }
-  .chip.pass{ color:var(--pass); background:var(--pass-bg); }
-  .chip.fail{ color:var(--fail); background:var(--fail-bg); }
-  .chip.warning{ color:var(--warn); background:var(--warn-bg); }
-
-  .spell-item{
-    padding:13px 14px; border:1px solid #f2d9d0; background:var(--fail-bg); border-radius:8px; margin-bottom:10px; font-size:13.5px;
-  }
-  .spell-item .words{ font-size:14px; }
-  .spell-item .words .found{ color:var(--fail); text-decoration:line-through; text-decoration-thickness:1.5px; }
-  .spell-item .words .arrow{ color:var(--ink-soft); margin:0 8px; }
-  .spell-item .words .fix{ color:var(--pass); font-weight:700; }
-  .spell-item .ctx{ color:var(--ink-soft); margin-top:6px; font-style:italic; font-size:12.5px; }
-  .none-found{
-    padding:16px; text-align:center; color:var(--pass); background:var(--pass-bg); border-radius:8px; font-size:13px; font-weight:600;
-  }
-
-  .measure-wrap{ border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
-  .measure-wrap svg{ width:100%; height:auto; display:block; cursor:crosshair; touch-action:none; user-select:none; }
-  .measure-readout{
-    margin-top:10px; font-family:var(--mono); font-size:16px; font-weight:700; color:var(--brand-deep);
-    padding:10px 14px; background:var(--brand-tint); border-radius:8px; text-align:center;
-  }
-  .page-switcher{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
-  .page-btn{
-    padding:6px 12px; border:1px solid var(--line); background:#fff; border-radius:6px; font-size:12.5px; cursor:pointer;
-  }
-  .page-btn.active{ background:var(--brand-deep); color:#fff; border-color:var(--brand-deep); }
-
-  .size-visual{ margin-top:14px; }
-  .size-visual svg{ width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:8px; background:#fff; }
-  .size-legend{ font-size:11.5px; color:var(--ink-soft); margin-top:8px; }
-
-  .footnote{ margin-top:26px; font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.5; }
-
-  .print-btn{
-    margin-top:14px; padding:9px 16px; background:#fff; border:1px solid var(--brand); color:var(--brand);
-    border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
-  }
-  .print-btn:hover{ background:var(--brand-tint); }
-
-  #printChecklist{ display:none; }
-
-  @media print {
-    .no-print{ display:none !important; }
-    .print-btn{ display:none !important; }
-    body, .wrap{ background:#fff; max-width:none; padding:0; margin:0; }
-    .panel{ box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
-    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-
-    #printChecklist{
-      display:block; page-break-before:always; padding:20px 0;
-    }
-    #printChecklist h2{ font-size:15px; margin:0 0 10px; }
-    #printChecklist img{ max-width:100%; height:auto; display:block; margin:0 auto; }
-  }
-</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>New PI — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="wrap">
-  <div class="masthead no-print">
-    <div class="eyebrow">Sunshine Industries · HIM/COS/15/210</div>
-    <h1>Artwork Compliance Checker</h1>
-    <p>Part 1 checks spelling, your mandatory field checklist, and batch coding box size against <em>ARTWORK_DECORATION_FINAL</em>. Part 2 cross-checks ingredients against a formulation code from your live sheet.</p>
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html" class="active" id="navNew">① New PI</a>
+    <a href="log.html" id="navLog">③ Log</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
   </div>
-
-  <div class="tabnav no-print">
-    <button class="tab-btn active" id="tabBtn1" data-tab="1">Part 1 · Compliance Check</button>
-    <button class="tab-btn" id="tabBtn2" data-tab="2">Part 2 · Ingredient Cross-Check</button>
-  </div>
-
-  <div id="part1Tab">
-  <div class="panel no-print">
-    <span class="part-tag p1">Part 1</span>
-    <p class="panel-title">Upload artwork</p>
-    <p class="panel-sub">Accepts a single PDF at a time — label or monocarton design.</p>
-    <label class="drop" id="dropZone">
-      <input type="file" id="fileInput" accept="application/pdf" />
-      <div class="icon">📄</div>
-      <div class="main">Click to choose a file, or drag a PDF here</div>
-      <div class="sub">ARTWORK_*.pdf</div>
-    </label>
-    <div class="filerow" id="fileRow" style="display:none;">
-      <span class="name" id="fileName"></span>
-      <button id="clearBtn">Remove</button>
-    </div>
-    <div class="field-group" id="codeGroup" style="display:none;">
-      <span class="part-tag p2" style="margin-bottom:8px;">Part 2</span>
-      <label class="field-label" for="formCodeInput">Formulation code (optional — enables ingredient cross-check here too)</label>
-      <input type="text" id="formCodeInput" class="text-input" placeholder="e.g. RK/245/01" />
-      <div class="field-hint" id="codeHint"></div>
-    </div>
-    <button class="run-btn" id="runBtn" disabled>Run check</button>
-    <div class="status" id="statusRow" style="display:none;">
-      <div class="spinner"></div>
-      <span id="statusText">Reading artwork…</span>
-    </div>
-    <div class="error" id="errorBox" style="display:none;"></div>
-  </div>
-
-  <div class="panel no-print" id="measurePanel" style="display:none;">
-    <span class="part-tag p1">Part 1 · manual tool</span>
-    <p class="panel-title">Measure any area</p>
-    <p class="panel-sub">Click and drag anywhere on the artwork below to measure that area in real-world millimeters — check any region, not just the batch coding box. Works instantly, no AI call needed.</p>
-    <div class="page-switcher" id="pageSwitcher" style="display:none;"></div>
-    <div class="measure-wrap">
-      <svg id="measureSvg" xmlns="http://www.w3.org/2000/svg"></svg>
-    </div>
-    <div class="measure-readout" id="measureReadout">Drag on the artwork above to measure an area.</div>
-  </div>
-
-  <div class="panel no-print">
-    <details class="ref">
-      <summary>Reference checklist in use (Part 1)</summary>
-      <ul class="ref-list" id="refList" style="margin:14px 0 0; padding-left:0; list-style:none;"></ul>
-    </details>
-  </div>
-
-  <div id="results"></div>
-  </div>
-
-  <div id="part2Tab" class="no-print" style="display:none;">
-  <div class="panel">
-    <span class="part-tag p2">Part 2 setup</span>
-    <p class="panel-title">Ingredient &amp; shelf-life reference</p>
-    <p class="panel-sub">Upload once — a single spreadsheet (.xlsx or .csv) with a Formulation Code column, a Base Ingredients column, and a Shelf Life column. It's remembered on this device and does <strong>not</strong> update automatically — upload again whenever your data changes.</p>
-    <label class="drop" id="refDropZone">
-      <input type="file" id="refFileInput" accept=".xlsx,.xls,.csv" />
-      <div class="icon">📊</div>
-      <div class="main">Click to choose a file, or drag a spreadsheet here</div>
-      <div class="sub">e.g. Formulation Code, Description, Shelf Life, Base Ingredients</div>
-    </label>
-    <div class="filerow" id="refFileRow" style="display:none;">
-      <span class="name" id="refFileName"></span>
-      <button id="refClearBtn">Remove</button>
-    </div>
-    <div class="error" id="refErrorBox" style="display:none;"></div>
-  </div>
-
-  <div class="panel">
-    <span class="part-tag p2">Part 2</span>
-    <p class="panel-title">Upload artwork</p>
-    <p class="panel-sub">Upload the artwork PDF whose ingredient list you want to cross-check.</p>
-    <label class="drop" id="p2DropZone">
-      <input type="file" id="p2FileInput" accept="application/pdf" />
-      <div class="icon">📄</div>
-      <div class="main">Click to choose a file, or drag a PDF here</div>
-      <div class="sub">ARTWORK_*.pdf</div>
-    </label>
-    <div class="filerow" id="p2FileRow" style="display:none;">
-      <span class="name" id="p2FileName"></span>
-      <button id="p2ClearBtn">Remove</button>
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="p2FormCodeInput">Formulation code</label>
-      <input type="text" id="p2FormCodeInput" class="text-input" placeholder="e.g. RK/245/01" />
-      <div class="field-hint" id="p2CodeHint"></div>
-    </div>
-    <button class="run-btn" id="p2RunBtn" disabled>Run ingredient cross-check</button>
-    <div class="status" id="p2StatusRow" style="display:none;">
-      <div class="spinner"></div>
-      <span id="p2StatusText">Reading artwork…</span>
-    </div>
-    <div class="error" id="p2ErrorBox" style="display:none;"></div>
-  </div>
-
-  <div id="p2Results"></div>
-  </div>
-
-  <div class="footnote no-print">AI-assisted review — always confirm critical regulatory fields manually before final print approval.</div>
 </div>
 
-<div id="printChecklist"></div>
+<div class="page-wrap">
+  <div class="page-head">
+    <h2 id="pageTitle">Create a Proforma Invoice</h2>
+    <p>Pick the selling company, enter the client's details, and generate the PI. <span id="creatingAs" style="color:var(--teal-dim);font-weight:600;"></span></p>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-if (window.pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-}
+  <form id="piForm">
+  <div class="form-layout">
+    <div>
 
-const REFERENCE_RULES = [
-  { tag: "BATCH CODE", text: "Batch No., Mfg. Date, M.R.P. ₹ (incl. of all taxes), and Use Before/Expiry Date must always be present." },
-  { tag: "M.R.P./ML", text: "M.R.P. ₹ per ml or gm must NOT appear if the stated volume/weight is below 8 ml/gm." },
-  { tag: "EXPIRY FORMAT", text: "Expiry must be a specific date, OR 'Use Before XX months from date of manufacturing' where XX is only 24 or 36." },
-  { tag: "MANUFACTURER", text: "Mfd. By: Sunshine Industries, Plot no. 3&4, HPSIDC Extension, Industrial Area Baddi, District Solan, Himachal Pradesh - 173205, M.L. No. HIM/COS/15/210." },
-  { tag: "NET CONTENT", text: "Monocarton must show at least one of: Net Content / Net Volume / Net Wt." },
-  { tag: "MARKETED BY", text: "Marketed By with mandatory marketer address (can match or differ from Mfd. By address)." },
-  { tag: "CUSTOMER CARE", text: "Contact No., Email, and Address are all mandatory in customer care details." },
-  { tag: "BARCODE", text: "EAN code is optional; if present it must be 8 or 13 digits." },
-  { tag: "BATCH BOX PRESENT", text: "A blank batch coding area for the above details must always be present on every artwork (min. 18mm x 18mm)." }
-];
-
-document.getElementById('refList').innerHTML = REFERENCE_RULES.map(r =>
-  `<li class="ref-row">
-    <span class="ref-tag">${r.tag}</span>
-    <span>${r.text}</span>
-  </li>`
-).join('');
-
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileRow = document.getElementById('fileRow');
-const fileName = document.getElementById('fileName');
-const clearBtn = document.getElementById('clearBtn');
-const runBtn = document.getElementById('runBtn');
-const statusRow = document.getElementById('statusRow');
-const statusText = document.getElementById('statusText');
-const errorBox = document.getElementById('errorBox');
-const results = document.getElementById('results');
-const measurePanel = document.getElementById('measurePanel');
-const measureSvg = document.getElementById('measureSvg');
-const measureReadout = document.getElementById('measureReadout');
-const pageSwitcher = document.getElementById('pageSwitcher');
-
-const refDropZone = document.getElementById('refDropZone');
-const refFileInput = document.getElementById('refFileInput');
-const refFileRow = document.getElementById('refFileRow');
-const refFileName = document.getElementById('refFileName');
-const refClearBtn = document.getElementById('refClearBtn');
-const refErrorBox = document.getElementById('refErrorBox');
-const codeGroup = document.getElementById('codeGroup');
-const formCodeInput = document.getElementById('formCodeInput');
-const codeHint = document.getElementById('codeHint');
-
-const REF_STORAGE_KEY = 'artworkChecker_ingredientRef';
-
-let currentFile = null;
-let ingredientReference = null; // { fileName, rows: [{code, description, shelfLifeMonths, shelfLifeRaw, baseIngredients, heroIngredients, additionalNotes}] }
-let lastArtworkImages = []; // populated per run, used to render the size-measurement overlay
-let measureImages = []; // populated on file upload, used by the manual measurement tool
-let measureCurrentPage = 0;
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-/* ---------- Part 2 reference sheet handling ---------- */
-
-function findColumn(row, patterns, excludeKeys){
-  const exclude = excludeKeys || [];
-  const keys = Object.keys(row).filter(k => !exclude.includes(k));
-  for (const p of patterns) {
-    const match = keys.find(k => p.test(k));
-    if (match) return match;
-  }
-  return null;
-}
-
-function resolveSameAs(rows){
-  const byDescription = {};
-  rows.forEach(r => { if (r.description) byDescription[r.description.trim().toLowerCase()] = r; });
-  rows.forEach(r => {
-    let hops = 0;
-    while (hops < 4) {
-      const m = r.baseIngredients.match(/^same as (.+)$/i);
-      if (!m) break;
-      const target = byDescription[m[1].trim().toLowerCase()];
-      if (!target || target === r) break;
-      r.baseIngredients = target.baseIngredients;
-      hops++;
-    }
-  });
-  return rows;
-}
-
-function parseIngredientWorkbook(workbook){
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-  if (!json.length) throw new Error('The spreadsheet appears to be empty.');
-
-  const codeCol = findColumn(json[0], [/formulation.?code/i, /^code/i, /product.?code/i]);
-  const descCol = findColumn(json[0], [/description/i]);
-  const shelfCol = findColumn(json[0], [/shelf.?life/i]);
-  const heroCol = findColumn(json[0], [/hero/i]);
-  const addCol = findColumn(json[0], [/additional/i]);
-  const baseCol = findColumn(json[0], [/base.?ingredient/i, /ingredient/i], [heroCol, addCol].filter(Boolean));
-
-  if (!codeCol) throw new Error('Could not find a Formulation Code column.');
-  if (!baseCol) throw new Error('Could not find a Base Ingredients column.');
-
-  let rows = json.map(r => {
-    const shelfRaw = shelfCol ? String(r[shelfCol] || '') : '';
-    const shelfMatch = shelfRaw.match(/(\d+)/);
-    return {
-      code: String(r[codeCol] || '').trim(),
-      description: descCol ? String(r[descCol] || '').trim() : '',
-      shelfLifeMonths: shelfMatch ? Number(shelfMatch[1]) : null,
-      shelfLifeRaw: shelfRaw.trim(),
-      baseIngredients: String(r[baseCol] || '').trim(),
-      heroIngredients: heroCol ? String(r[heroCol] || '').trim() : '',
-      additionalNotes: addCol ? String(r[addCol] || '').trim() : ''
-    };
-  }).filter(r => r.code && r.baseIngredients);
-
-  if (!rows.length) throw new Error('No rows with both a Formulation Code and Base Ingredients were found.');
-  return resolveSameAs(rows);
-}
-
-function loadStoredReference(){
-  try {
-    const raw = localStorage.getItem(REF_STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.rows) && parsed.rows.length) {
-      ingredientReference = parsed;
-      refFileName.textContent = `${parsed.fileName} (${parsed.rows.length} rows)`;
-      refFileRow.style.display = 'flex';
-      updateCodeFieldVisibility();
-      if (typeof p2UpdateRunEnabled === 'function') p2UpdateRunEnabled();
-    }
-  } catch (e) { /* ignore corrupt storage */ }
-}
-
-async function handleReferenceFile(file){
-  refErrorBox.style.display = 'none';
-  try {
-    const buf = await file.arrayBuffer();
-    const workbook = XLSX.read(buf, { type: 'array' });
-    const rows = parseIngredientWorkbook(workbook);
-    ingredientReference = { fileName: file.name, rows };
-    localStorage.setItem(REF_STORAGE_KEY, JSON.stringify(ingredientReference));
-    refFileName.textContent = `${file.name} (${rows.length} rows)`;
-    refFileRow.style.display = 'flex';
-    updateCodeFieldVisibility();
-    if (typeof p2UpdateRunEnabled === 'function') p2UpdateRunEnabled();
-  } catch (err) {
-    refErrorBox.textContent = err.message || 'Could not read that spreadsheet.';
-    refErrorBox.style.display = 'block';
-  }
-}
-
-refFileInput.addEventListener('change', e => { if (e.target.files[0]) handleReferenceFile(e.target.files[0]); });
-['dragover','dragenter'].forEach(evt => refDropZone.addEventListener(evt, e => { e.preventDefault(); refDropZone.classList.add('drag'); }));
-['dragleave','drop'].forEach(evt => refDropZone.addEventListener(evt, e => { e.preventDefault(); refDropZone.classList.remove('drag'); }));
-refDropZone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleReferenceFile(f); });
-
-refClearBtn.addEventListener('click', e => {
-  e.preventDefault(); e.stopPropagation();
-  ingredientReference = null;
-  refFileInput.value = '';
-  refFileRow.style.display = 'none';
-  localStorage.removeItem(REF_STORAGE_KEY);
-  formCodeInput.value = '';
-  codeHint.textContent = '';
-  updateCodeFieldVisibility();
-  if (typeof p2UpdateRunEnabled === 'function') p2UpdateRunEnabled();
-});
-
-loadStoredReference();
-
-function matchFormulationCode(code){
-  if (!ingredientReference || !code) return null;
-  const target = code.trim().toLowerCase();
-  return ingredientReference.rows.find(r => r.code.trim().toLowerCase() === target) || null;
-}
-
-formCodeInput.addEventListener('input', () => {
-  const code = formCodeInput.value.trim();
-  if (!code) { codeHint.textContent = ''; codeHint.className = 'field-hint'; return; }
-  const match = matchFormulationCode(code);
-  if (match) {
-    codeHint.textContent = `Found: ${match.description || match.code} — ${match.shelfLifeRaw || match.shelfLifeMonths + ' months'}`;
-    codeHint.className = 'field-hint ok';
-  } else {
-    codeHint.textContent = "No formulation found for this code — Part 2 will be skipped for this check.";
-    codeHint.className = 'field-hint warn';
-  }
-});
-
-/* ---------- Part 1 artwork upload ---------- */
-
-function updateCodeFieldVisibility(){
-  codeGroup.style.display = (currentFile && ingredientReference) ? 'block' : 'none';
-}
-
-function showFile(file){
-  currentFile = file;
-  fileName.textContent = file.name;
-  fileRow.style.display = 'flex';
-  runBtn.disabled = false;
-  errorBox.style.display = 'none';
-  updateCodeFieldVisibility();
-  setupMeasureTool(file);
-}
-
-fileInput.addEventListener('change', e => { if (e.target.files[0]) showFile(e.target.files[0]); });
-['dragover','dragenter'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
-['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
-dropZone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f && f.type === 'application/pdf') showFile(f); });
-
-clearBtn.addEventListener('click', e => {
-  e.preventDefault(); e.stopPropagation();
-  currentFile = null;
-  fileInput.value = '';
-  fileRow.style.display = 'none';
-  runBtn.disabled = true;
-  results.innerHTML = '';
-  errorBox.style.display = 'none';
-  updateCodeFieldVisibility();
-  measureImages = [];
-  measurePanel.style.display = 'none';
-});
-
-/* ---------- Manual measurement tool (instant, no AI call) ---------- */
-
-async function setupMeasureTool(file){
-  measurePanel.style.display = 'none';
-  try {
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const pagesToRender = Math.min(pdf.numPages, 6);
-    const images = [];
-    for (let i = 1; i <= pagesToRender; i++){
-      const page = await pdf.getPage(i);
-      const baseViewport = page.getViewport({ scale: 1 });
-      const widthMm = baseViewport.width * 25.4 / 72;
-      const heightMm = baseViewport.height * 25.4 / 72;
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      images.push({
-        page: i,
-        base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1],
-        pixelWidth: canvas.width,
-        pixelHeight: canvas.height,
-        widthMm, heightMm
-      });
-    }
-    measureImages = images;
-    measureCurrentPage = 0;
-    renderMeasurePage();
-    measurePanel.style.display = 'block';
-  } catch (err) {
-    console.error('Measurement tool setup failed:', err);
-    // Non-critical — the AI check can still run without this tool working.
-  }
-}
-
-function renderMeasurePage(){
-  const img = measureImages[measureCurrentPage];
-  if (!img) return;
-  const mmPerPxX = img.widthMm / img.pixelWidth;
-  const mmPerPxY = img.heightMm / img.pixelHeight;
-
-  measureSvg.setAttribute('viewBox', `0 0 ${img.pixelWidth} ${img.pixelHeight}`);
-  measureSvg.innerHTML = `
-    <image href="data:image/jpeg;base64,${img.base64}" x="0" y="0" width="${img.pixelWidth}" height="${img.pixelHeight}" />
-    <rect id="selRect" fill="rgba(46,107,163,0.15)" stroke="#2e6ba3" stroke-width="${Math.max(img.pixelWidth, img.pixelHeight) / 300}" stroke-dasharray="8,5" style="display:none;"></rect>
-    <text id="selLabel" font-size="${Math.max(img.pixelWidth, img.pixelHeight) / 35}" fill="#1b3a57" font-weight="700" style="display:none;"></text>
-  `;
-  const selRect = measureSvg.querySelector('#selRect');
-  const selLabel = measureSvg.querySelector('#selLabel');
-  measureReadout.textContent = 'Drag on the artwork above to measure an area.';
-
-  if (measureImages.length > 1) {
-    pageSwitcher.style.display = 'flex';
-    pageSwitcher.innerHTML = measureImages.map((im, idx) =>
-      `<button class="page-btn ${idx === measureCurrentPage ? 'active' : ''}" data-idx="${idx}">Page ${im.page}</button>`
-    ).join('');
-  } else {
-    pageSwitcher.style.display = 'none';
-  }
-
-  let dragging = false;
-  let startPt = null;
-
-  function getSvgPoint(evt){
-    const pt = measureSvg.createSVGPoint();
-    const src = evt.touches ? evt.touches[0] : evt;
-    pt.x = src.clientX;
-    pt.y = src.clientY;
-    return pt.matrixTransform(measureSvg.getScreenCTM().inverse());
-  }
-
-  function updateRect(p1, p2){
-    const x = Math.min(p1.x, p2.x), y = Math.min(p1.y, p2.y);
-    const w = Math.abs(p2.x - p1.x), h = Math.abs(p2.y - p1.y);
-    selRect.setAttribute('x', x);
-    selRect.setAttribute('y', y);
-    selRect.setAttribute('width', w);
-    selRect.setAttribute('height', h);
-    const wMm = w * mmPerPxX, hMm = h * mmPerPxY;
-    selLabel.setAttribute('x', x);
-    selLabel.setAttribute('y', Math.max(y - 8, 16));
-    selLabel.textContent = `${wMm.toFixed(1)}mm x ${hMm.toFixed(1)}mm`;
-    measureReadout.textContent = `${wMm.toFixed(1)}mm x ${hMm.toFixed(1)}mm  (page ${img.page})`;
-  }
-
-  function onDown(e){
-    e.preventDefault();
-    dragging = true;
-    startPt = getSvgPoint(e);
-    selRect.style.display = 'block';
-    selLabel.style.display = 'block';
-    updateRect(startPt, startPt);
-  }
-  function onMove(e){
-    if (!dragging) return;
-    e.preventDefault();
-    updateRect(startPt, getSvgPoint(e));
-  }
-  function onUp(){
-    dragging = false;
-  }
-
-  measureSvg.onmousedown = onDown;
-  measureSvg.onmousemove = onMove;
-  window.onmouseup = onUp;
-  measureSvg.ontouchstart = onDown;
-  measureSvg.ontouchmove = onMove;
-  measureSvg.ontouchend = onUp;
-}
-
-pageSwitcher.addEventListener('click', e => {
-  const btn = e.target.closest('.page-btn');
-  if (!btn) return;
-  measureCurrentPage = Number(btn.dataset.idx);
-  renderMeasurePage();
-});
-
-/* ---------- PDF reading: text + rasterized pages with physical dimensions ---------- */
-
-const RASTER_SCALE = 2; // ~144 DPI — still enough detail to measure the batch box, but faster to process than scale 3
-
-async function extractPdfContent(file){
-  if (!window.pdfjsLib) throw new Error('PDF_READER_UNAVAILABLE');
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  const maxTextPages = Math.min(pdf.numPages, 6);
-  let fullText = '';
-  for (let i = 1; i <= maxTextPages; i++){
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    fullText += content.items.map(it => it.str).join(' ') + '\n';
-  }
-  return { text: fullText.trim(), pdf };
-}
-
-async function rasterizePagesWithMeta(pdf){
-  const pagesToRender = Math.min(pdf.numPages, 2); // batch coding box is virtually always on the front page(s)
-  const images = [];
-  for (let i = 1; i <= pagesToRender; i++){
-    const page = await pdf.getPage(i);
-    const baseViewport = page.getViewport({ scale: 1 }); // PDF points (1/72 inch)
-    const widthMm = baseViewport.width * 25.4 / 72;
-    const heightMm = baseViewport.height * 25.4 / 72;
-    const viewport = page.getViewport({ scale: RASTER_SCALE });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    images.push({
-      page: i,
-      base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1],
-      pixelWidth: canvas.width,
-      pixelHeight: canvas.height,
-      widthMm, heightMm
-    });
-  }
-  return images;
-}
-
-async function buildRequestPayload(file){
-  const extraction = await extractPdfContent(file);
-  const images = await rasterizePagesWithMeta(extraction.pdf);
-
-  const textContent = [];
-  if (extraction.text.length > 40) {
-    textContent.push({ type: 'text', text: `Extracted artwork text:\n"""\n${extraction.text.slice(0, 8000)}\n"""` });
-  } else {
-    // No text layer on the PDF — fall back to letting the review call read directly from the page images.
-    images.forEach(img => {
-      textContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img.base64 } });
-    });
-  }
-  textContent.push({ type: 'text', text: 'Review this artwork per your instructions and call submit_review with your findings.' });
-
-  const sizeImage = images[0]
-    ? { base64: images[0].base64, pixelWidth: images[0].pixelWidth, pixelHeight: images[0].pixelHeight }
-    : null;
-
-  return { textContent, sizeImage, images };
-}
-
-/* ---------- Backend call ---------- */
-
-async function callBackend(textContent, sizeImage, attempt){
-  attempt = attempt || 1;
-  try {
-    const body = { textContent, sizeImage };
-    const code = formCodeInput.value.trim();
-    if (ingredientReference && code) {
-      const match = matchFormulationCode(code);
-      if (match) body.formulationRecord = match;
-    }
-    const response = await fetch("/api/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    let data;
-    try {
-      data = await response.json();
-    } catch (parseErr) {
-      throw new Error(`Server returned a non-JSON response (status ${response.status}) \u2014 likely a function timeout or crash. Try again with a simpler artwork, or check Vercel's function logs.`);
-    }
-    if (!response.ok) {
-      throw new Error(data.error || `Backend responded with status ${response.status}`);
-    }
-    return data;
-  } catch (err) {
-    if (attempt < 2 && /Failed to fetch|NetworkError|TypeError/i.test(err.message)) {
-      await new Promise(r => setTimeout(r, 900));
-      return callBackend(textContent, sizeImage, attempt + 1);
-    }
-    throw err;
-  }
-}
-
-/* ---------- Results rendering ---------- */
-
-function scoreColor(score){
-  const cs = getComputedStyle(document.documentElement);
-  if (score >= 85) return cs.getPropertyValue('--pass');
-  if (score >= 60) return cs.getPropertyValue('--warn');
-  return cs.getPropertyValue('--fail');
-}
-
-function renderChecklist(items){
-  if (!Array.isArray(items) || !items.length) return `<div class="none-found">No items returned.</div>`;
-  return items.map(c => {
-    const st = ['pass','fail','warning'].includes(c.status) ? c.status : 'warning';
-    const icon = st === 'pass' ? '✓' : (st === 'fail' ? '✕' : '⚠');
-    return `<div class="check-row">
-      <span class="check-icon">${icon}</span>
-      <div><div class="check-field">${escapeHtml(c.field || '')}</div><div class="check-note">${escapeHtml(c.note || '')}</div></div>
-      <span class="chip ${st}">${st}</span>
-    </div>`;
-  }).join('');
-}
-
-function renderBatchSizeSection(box, images){
-  const MIN_MM = 18;
-  if (!box || !box.found) {
-    return `<div class="panel">
-      <p class="section-h">Batch coding area size <span class="part-tag p1" style="margin-left:6px;">Part 1</span></p>
-      <p class="section-sub">Minimum required: ${MIN_MM}mm x ${MIN_MM}mm.</p>
-      <div class="check-row"><span class="check-icon">⚠</span>
-        <div><div class="check-field">Could not measure</div><div class="check-note">${escapeHtml((box && box.notes) || 'No clearly demarcated batch coding box was found.')}</div></div>
-        <span class="chip warning">warning</span>
+      <div class="section">
+        <h3>Seller — select company</h3>
+        <div class="company-pick" id="companyPick">
+          <button type="button" class="company-card" data-company="cosmetic">
+            <img class="swatch" src="images/cosmetic-logo.jpg" alt="Sunshine Cosmetic Pvt. Ltd. logo">
+            <b>Sunshine Cosmetic Pvt. Ltd.</b>
+            <small>Kundli, Sonepat</small>
+          </button>
+          <button type="button" class="company-card" data-company="industries">
+            <img class="swatch" src="images/industries-logo.jpg" alt="Sunshine Industries logo">
+            <b>Sunshine Industries</b>
+            <small>Baddi, Himachal Pradesh</small>
+          </button>
+        </div>
       </div>
-    </div>`;
-  }
 
-  const img = images[0];
-  if (!img) {
-    return `<div class="panel"><p class="section-h">Batch coding area size</p><div class="none-found">Image reference unavailable.</div></div>`;
-  }
+      <div class="section">
+        <h3>Buyer</h3>
+        <div class="field"><label>Company / name *</label><input id="buyerName" required placeholder="Glamirk"></div>
+        <div class="row2">
+          <div class="field"><label>Contact person</label><input id="buyerContact" placeholder="Ajay"></div>
+          <div class="field"><label>Phone</label><input id="buyerPhone" placeholder="9560762456"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Email</label><input id="buyerEmail" placeholder="buyer@email.com" type="email"></div>
+          <div class="field"><label>GSTIN</label><input id="buyerGST" placeholder="22AAAAA0000A1Z5" style="text-transform:uppercase;"></div>
+        </div>
+        <div class="field"><label>Billing address</label><textarea id="buyerAddress" placeholder="Buyer's billing address"></textarea></div>
+      </div>
 
-  const mmPerPxX = img.widthMm / img.pixelWidth;
-  const mmPerPxY = img.heightMm / img.pixelHeight;
-  const measuredWmm = box.width * mmPerPxX;
-  const measuredHmm = box.height * mmPerPxY;
-  const pass = measuredWmm >= MIN_MM && measuredHmm >= MIN_MM;
-  const color = pass ? '#1f7a52' : '#c23b23';
+      <div class="section">
+        <h3>Invoice details</h3>
+        <div class="row2">
+          <div class="field"><label>PI number</label><input id="piNumber" placeholder="auto"></div>
+          <div class="field"><label>Reference PO number</label><input id="refPO" placeholder="Buyer's PO number (optional)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>PI date</label><input type="date" id="piDate"></div>
+          <div class="field"><label>Valid until</label><input type="date" id="validUntil"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Currency</label>
+            <select id="currency">
+              <option value="₹">INR (₹)</option>
+              <option value="$">USD ($)</option>
+              <option value="€">EUR (€)</option>
+              <option value="£">GBP (£)</option>
+            </select>
+          </div>
+          <div class="field"><label>Created by</label><input id="createdByDisplay" disabled style="background:#F3EFE7;color:var(--muted);"></div>
+        </div>
+      </div>
 
-  const w = img.pixelWidth, h = img.pixelHeight;
-  let ticks = '';
-  const tickEveryMm = 10;
-  for (let mm = 0; mm <= img.widthMm; mm += tickEveryMm) {
-    const px = mm / mmPerPxX;
-    ticks += `<line x1="${px}" y1="0" x2="${px}" y2="16" stroke="#c23b23" stroke-width="2"/>`;
-    if (mm % 20 === 0) ticks += `<text x="${px + 3}" y="14" font-size="14" fill="#c23b23">${mm}</text>`;
-  }
-  for (let mm = 0; mm <= img.heightMm; mm += tickEveryMm) {
-    const px = mm / mmPerPxY;
-    ticks += `<line x1="0" y1="${px}" x2="16" y2="${px}" stroke="#c23b23" stroke-width="2"/>`;
-    if (mm % 20 === 0) ticks += `<text x="3" y="${px - 3}" font-size="14" fill="#c23b23">${mm}</text>`;
-  }
+      <div class="section">
+        <h3>Items</h3>
+        <div id="itemRows"></div>
+        <button type="button" class="add-item" onclick="addItem()">+ Add line item</button>
+        <div class="field" style="margin-top:12px;"><label>Tax % (on invoice subtotal)</label><input type="number" id="taxPct" value="18" min="0" step="0.5" style="max-width:120px;"></div>
+      </div>
 
-  const svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">
-      <image href="data:image/jpeg;base64,${img.base64}" x="0" y="0" width="${w}" height="${h}" />
-      <rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" fill="none" stroke="${color}" stroke-width="5" stroke-dasharray="14,8"/>
-      <text x="${box.x}" y="${Math.max(box.y - 14, 20)}" font-size="26" fill="${color}" font-weight="700">${measuredWmm.toFixed(1)}mm x ${measuredHmm.toFixed(1)}mm</text>
-      ${ticks}
-    </svg>`;
+      <div class="section">
+        <h3>Terms &amp; Conditions</h3>
+        <div class="field">
+          <label>Select version</label>
+          <select id="tcVersion" onchange="applyTC(this.value)">
+            <option value="">-- Select --</option>
+            <option value="v1">TC (V1)</option>
+            <option value="v2">TC (V2)</option>
+            <option value="custom">Custom / edit manually</option>
+          </select>
+        </div>
+        <div class="field"><textarea id="notes" rows="6" placeholder="Pick a version above, or write your own terms here.">Payment and delivery terms to be mutually agreed.</textarea></div>
+      </div>
 
-  return `<div class="panel">
-    <p class="section-h">Batch coding area size <span class="part-tag p1" style="margin-left:6px;">Part 1</span></p>
-    <p class="section-sub">Minimum required: ${MIN_MM}mm x ${MIN_MM}mm. Red scale marks are every 10mm, labeled every 20mm — use them to visually cross-check the measurement.</p>
-    <div class="check-row">
-      <span class="check-icon">${pass ? '✓' : '✕'}</span>
-      <div><div class="check-field">Measured ${measuredWmm.toFixed(1)}mm x ${measuredHmm.toFixed(1)}mm</div><div class="check-note">${escapeHtml(box.notes || '')}</div></div>
-      <span class="chip ${pass ? 'pass' : 'fail'}">${pass ? 'pass' : 'fail'}</span>
     </div>
-    <div class="size-visual">${svg}</div>
-    <div class="size-legend">Dashed outline marks the detected batch coding box on page ${img.page}.</div>
-  </div>`;
+
+    <div>
+      <div class="side-summary">
+        <h3>Summary</h3>
+        <div class="tline"><span>Selling company</span><b id="sumCompany" style="color:#fff;">—</b></div>
+        <div class="tline"><span>Items</span><b id="sumItems" style="color:#fff;">0</b></div>
+        <div class="tline"><span>Subtotal</span><span id="sumSubtotal">0.00</span></div>
+        <div class="tline" id="sumAdvNoGSTRow" style="display:none;"><span>Advance required</span><span id="sumAdvNoGST">0.00</span></div>
+        <div class="tline"><span id="sumTaxLabel">Tax (18%)</span><span id="sumTax">0.00</span></div>
+        <div class="grand"><span>Grand total</span><span id="sumGrand">0.00</span></div>
+        <div class="tline" id="sumAdvGSTRow" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.2);"><span>Advance required</span><span id="sumAdvGST">0.00</span></div>
+        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Generate PI →</button>
+        <div class="hint" id="editHint" style="display:none;">Editing existing PI — saving will update it.</div>
+      </div>
+    </div>
+  </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+let items = [];
+let idSeed = 1;
+let editingId = null;
+let currentUserName = '';
+
+function newItem(product="", desc="", qty=1, price=0, advancePct=0, advanceGST="without"){
+  return {id: idSeed++, product, desc, qty, price, advancePct, advanceGST};
 }
 
-function renderResults(data, images){
-  const score = Math.max(0, Math.min(100, Number(data.accuracy_score) || 0));
-  const circumference = 2 * Math.PI * 45;
-  const dash = (score / 100) * circumference;
-  const color = scoreColor(score);
-  const stampClass = score >= 85 ? 'pass' : (score >= 60 ? 'warn' : 'fail');
-  const stampLabel = score >= 85 ? '✓ Looks compliant' : (score >= 60 ? '⚠ Needs review' : '✕ Action required');
-
-  let html = `
-    <div class="panel">
-      <p class="panel-title">Result overview</p>
-      <div class="scorehead">
-        <div class="gauge">
-          <svg viewBox="0 0 100 100">
-            <circle class="track" cx="50" cy="50" r="45"></circle>
-            <circle class="fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${dash} ${circumference}"></circle>
-          </svg>
-          <div class="num"><b>${score}</b><span>score</span></div>
-        </div>
-        <div class="scoremeta">
-          <div class="stamp ${stampClass}">${stampLabel}</div>
-          <p class="summary-text">${escapeHtml(data.summary || '')}</p>
+function addItem(product,desc,qty,price,advancePct,advanceGST){
+  items.push(newItem(product,desc,qty,price,advancePct,advanceGST));
+  renderItemRows();
+  updateSummary();
+}
+function removeItem(id){
+  items = items.filter(i=>i.id!==id);
+  renderItemRows();
+  updateSummary();
+}
+function renderItemRows(){
+  document.getElementById('itemRows').innerHTML = items.map(i=>`
+    <div class="item-card">
+      <div class="item-card-row1">
+        <input value="${escHtml(i.product)}" placeholder="Product name" oninput="items.find(x=>x.id===${i.id}).product=this.value; updateSummary();">
+        <input value="${escHtml(i.desc)}" placeholder="Description" oninput="items.find(x=>x.id===${i.id}).desc=this.value; updateSummary();">
+        <button type="button" class="rm-btn" onclick="removeItem(${i.id})">✕</button>
+      </div>
+      <div class="item-card-row2">
+        <div><label>Quantity</label><input type="number" min="0" value="${i.qty}" oninput="items.find(x=>x.id===${i.id}).qty=+this.value||0; updateSummary();"></div>
+        <div><label>Price</label><input type="number" min="0" step="0.01" value="${i.price}" oninput="items.find(x=>x.id===${i.id}).price=+this.value||0; updateSummary();"></div>
+        <div><label>Advance % required</label><input type="number" min="0" max="100" value="${i.advancePct}" oninput="items.find(x=>x.id===${i.id}).advancePct=+this.value||0; updateSummary();"></div>
+        <div><label>Advance</label>
+          <select onchange="items.find(x=>x.id===${i.id}).advanceGST=this.value; updateSummary();">
+            <option value="without" ${i.advanceGST==='without'?'selected':''}>Without GST</option>
+            <option value="with" ${i.advanceGST==='with'?'selected':''}>With GST</option>
+          </select>
         </div>
       </div>
-      <button class="print-btn" id="printBtn">🖨 Print Checklist</button>
-    </div>`;
+    </div>
+  `).join('');
+}
 
-  html += `<div class="panel">
-    <p class="section-h">Compliance checklist <span class="part-tag p1" style="margin-left:6px;">Part 1</span></p>
-    <p class="section-sub">Checked against your ARTWORK_DECORATION_FINAL reference.</p>
-    ${renderChecklist(data.compliance_checks)}
-  </div>`;
-
-  html += renderBatchSizeSection(data.batch_coding_box, images);
-
-  html += `<div class="panel">
-    <p class="section-h">Spelling &amp; text issues <span class="part-tag p1" style="margin-left:6px;">Part 1</span></p>
-    <p class="section-sub">Only genuine errors are flagged — stylistic choices are left alone.</p>`;
-  if (Array.isArray(data.spelling_issues) && data.spelling_issues.length) {
-    data.spelling_issues.forEach(s => {
-      html += `<div class="spell-item">
-        <div class="words"><span class="found">${escapeHtml(s.found || '')}</span><span class="arrow">→</span><span class="fix">${escapeHtml(s.suggestion || '')}</span></div>
-        ${s.context ? `<div class="ctx">"${escapeHtml(s.context)}"</div>` : ''}
-      </div>`;
-    });
-  } else {
-    html += `<div class="none-found">No spelling issues found.</div>`;
+let selectedCompany = null;
+async function pickCompany(key, silent){
+  selectedCompany = key;
+  document.querySelectorAll('.company-card').forEach(c=>c.classList.toggle('selected', c.dataset.company===key));
+  if(!silent){
+    const currentNum = document.getElementById('piNumber').value.trim();
+    if(!editingId && (!currentNum || currentNum.startsWith('PI-'))){
+      document.getElementById('piNumber').value = await nextPiNumber(key);
+    }
   }
-  html += `</div>`;
-
-  if (Array.isArray(data.formulation_checks) && data.formulation_checks.length) {
-    html += `<div class="panel">
-      <p class="section-h">Formulation cross-check <span class="part-tag p2" style="margin-left:6px;">Part 2</span></p>
-      <p class="section-sub">Ingredients and shelf life vs. formulation code ${escapeHtml(formCodeInput.value.trim())}.</p>
-      ${renderChecklist(data.formulation_checks)}
-    </div>`;
-  }
-
-  results.innerHTML = html;
-  document.getElementById('printBtn').addEventListener('click', () => printChecklistReport(data, images));
+  updateSummary();
 }
-
-/* ---------- Print Checklist: prints the real #results content as-is, plus the artwork as a final page ---------- */
-
-function printChecklistReport(data, images){
-  const artworkName = (currentFile && currentFile.name) || 'Untitled artwork';
-  const artworkImg = images && images[0];
-
-  document.getElementById('printChecklist').innerHTML = artworkImg ? `
-    <h2>Artwork — ${escapeHtml(artworkName)}</h2>
-    <img src="data:image/jpeg;base64,${artworkImg.base64}" alt="Artwork" />
-  ` : '';
-  window.print();
-}
-
-function showError(stage, err){
-  console.error(`[${stage}]`, err);
-  const label = stage === 'extract' ? "Couldn't read the PDF in your browser." : "Couldn't reach the checker backend.";
-  errorBox.innerHTML = `${label} <span class="retry-link" id="retryLink">Try again</span><div class="detail">${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
-  errorBox.style.display = 'block';
-  document.getElementById('retryLink').addEventListener('click', runCheck);
-}
-
-async function runCheck(){
-  if (!currentFile) return;
-  errorBox.style.display = 'none';
-  results.innerHTML = '';
-  runBtn.disabled = true;
-  statusRow.style.display = 'flex';
-  statusText.textContent = 'Reading artwork…';
-
-  let payload;
-  try {
-    statusText.textContent = 'Reading artwork and rendering pages…';
-    payload = await buildRequestPayload(currentFile);
-    lastArtworkImages = payload.images;
-  } catch (err) {
-    statusRow.style.display = 'none';
-    runBtn.disabled = false;
-    showError('extract', err);
-    return;
-  }
-
-  try {
-    statusText.textContent = 'Checking spelling, compliance, and size…';
-    const data = await callBackend(payload.textContent, payload.sizeImage);
-    statusRow.style.display = 'none';
-    renderResults(data, lastArtworkImages);
-  } catch (err) {
-    statusRow.style.display = 'none';
-    showError('api', err);
-  } finally {
-    runBtn.disabled = false;
-  }
-}
-
-runBtn.addEventListener('click', runCheck);
-
-/* ---------- Tab navigation ---------- */
-
-const tabBtn1 = document.getElementById('tabBtn1');
-const tabBtn2 = document.getElementById('tabBtn2');
-const part1Tab = document.getElementById('part1Tab');
-const part2Tab = document.getElementById('part2Tab');
-
-function switchTab(n){
-  tabBtn1.classList.toggle('active', n === 1);
-  tabBtn2.classList.toggle('active', n === 2);
-  part1Tab.style.display = n === 1 ? 'block' : 'none';
-  part2Tab.style.display = n === 2 ? 'block' : 'none';
-}
-tabBtn1.addEventListener('click', () => switchTab(1));
-tabBtn2.addEventListener('click', () => switchTab(2));
-
-/* ---------- Part 2: dedicated ingredient cross-check ---------- */
-
-const p2DropZone = document.getElementById('p2DropZone');
-const p2FileInput = document.getElementById('p2FileInput');
-const p2FileRow = document.getElementById('p2FileRow');
-const p2FileName = document.getElementById('p2FileName');
-const p2ClearBtn = document.getElementById('p2ClearBtn');
-const p2FormCodeInput = document.getElementById('p2FormCodeInput');
-const p2CodeHint = document.getElementById('p2CodeHint');
-const p2RunBtn = document.getElementById('p2RunBtn');
-const p2StatusRow = document.getElementById('p2StatusRow');
-const p2StatusText = document.getElementById('p2StatusText');
-const p2ErrorBox = document.getElementById('p2ErrorBox');
-const p2Results = document.getElementById('p2Results');
-
-let p2CurrentFile = null;
-
-function p2ShowFile(file){
-  p2CurrentFile = file;
-  p2FileName.textContent = file.name;
-  p2FileRow.style.display = 'flex';
-  p2ErrorBox.style.display = 'none';
-  p2UpdateRunEnabled();
-}
-
-p2FileInput.addEventListener('change', e => { if (e.target.files[0]) p2ShowFile(e.target.files[0]); });
-['dragover','dragenter'].forEach(evt => p2DropZone.addEventListener(evt, e => { e.preventDefault(); p2DropZone.classList.add('drag'); }));
-['dragleave','drop'].forEach(evt => p2DropZone.addEventListener(evt, e => { e.preventDefault(); p2DropZone.classList.remove('drag'); }));
-p2DropZone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f && f.type === 'application/pdf') p2ShowFile(f); });
-
-p2ClearBtn.addEventListener('click', e => {
-  e.preventDefault(); e.stopPropagation();
-  p2CurrentFile = null;
-  p2FileInput.value = '';
-  p2FileRow.style.display = 'none';
-  p2Results.innerHTML = '';
-  p2ErrorBox.style.display = 'none';
-  p2UpdateRunEnabled();
+document.querySelectorAll('.company-card').forEach(card=>{
+  card.addEventListener('click', ()=>pickCompany(card.dataset.company));
 });
 
-function p2UpdateRunEnabled(){
-  p2RunBtn.disabled = !(p2CurrentFile && ingredientReference && p2FormCodeInput.value.trim());
+function updateSummary(){
+  document.getElementById('sumCompany').textContent = selectedCompany ? COMPANIES[selectedCompany].short : '—';
+  document.getElementById('sumItems').textContent = items.length;
+  const taxPct = +document.getElementById('taxPct').value || 0;
+  const {subtotal, tax, grandTotal, advanceWithoutGST, advanceWithGST} = computeTotals(items, taxPct);
+  const cur = document.getElementById('currency').value;
+  document.getElementById('sumSubtotal').textContent = cur + fmtMoney(subtotal);
+  document.getElementById('sumTaxLabel').textContent = `Tax (${taxPct}%)`;
+  document.getElementById('sumTax').textContent = cur + fmtMoney(tax);
+  document.getElementById('sumGrand').textContent = cur + fmtMoney(grandTotal);
+  document.getElementById('sumAdvNoGSTRow').style.display = advanceWithoutGST > 0 ? 'flex' : 'none';
+  document.getElementById('sumAdvNoGST').textContent = cur + fmtMoney(advanceWithoutGST);
+  document.getElementById('sumAdvGSTRow').style.display = advanceWithGST > 0 ? 'flex' : 'none';
+  document.getElementById('sumAdvGST').textContent = cur + fmtMoney(advanceWithGST);
 }
 
-p2FormCodeInput.addEventListener('input', () => {
-  const code = p2FormCodeInput.value.trim();
-  p2UpdateRunEnabled();
-  if (!code) { p2CodeHint.textContent = ''; p2CodeHint.className = 'field-hint'; return; }
-  if (!ingredientReference) {
-    p2CodeHint.textContent = 'Upload your ingredient reference sheet above first.';
-    p2CodeHint.className = 'field-hint warn';
-    return;
+document.getElementById('taxPct').addEventListener('input', updateSummary);
+document.getElementById('currency').addEventListener('change', updateSummary);
+
+function applyTC(version){
+  const notesEl = document.getElementById('notes');
+  if(version === 'v1' || version === 'v2'){
+    notesEl.value = TC_VERSIONS[version];
+  } else if(version === ''){
+    notesEl.value = '';
   }
-  const match = matchFormulationCode(code);
-  if (match) {
-    p2CodeHint.textContent = `Found: ${match.description || match.code} — ${match.shelfLifeRaw || match.shelfLifeMonths + ' months'}`;
-    p2CodeHint.className = 'field-hint ok';
-  } else {
-    p2CodeHint.textContent = 'No formulation found for this code in your reference sheet.';
-    p2CodeHint.className = 'field-hint warn';
+}
+document.getElementById('notes').addEventListener('input', function(){
+  const sel = document.getElementById('tcVersion');
+  if(sel.value === 'v1' || sel.value === 'v2'){
+    if(this.value !== TC_VERSIONS[sel.value]) sel.value = 'custom';
   }
 });
 
-function p2ShowError(err){
-  console.error('[part2]', err);
-  p2ErrorBox.innerHTML = `Couldn't complete the ingredient cross-check. <span class="retry-link" id="p2RetryLink">Try again</span><div class="detail">${escapeHtml(err && err.message ? err.message : String(err))}</div>`;
-  p2ErrorBox.style.display = 'block';
-  document.getElementById('p2RetryLink').addEventListener('click', p2RunCheck);
-}
-
-async function p2CallBackend(textContent, formulationRecord, attempt){
-  attempt = attempt || 1;
-  try {
-    const response = await fetch('/api/check-ingredients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ textContent, formulationRecord })
-    });
-    let data;
-    try {
-      data = await response.json();
-    } catch (parseErr) {
-      throw new Error(`Server returned a non-JSON response (status ${response.status}).`);
-    }
-    if (!response.ok) throw new Error(data.error || `Backend responded with status ${response.status}`);
-    return data;
-  } catch (err) {
-    if (attempt < 2 && /Failed to fetch|NetworkError|TypeError/i.test(err.message)) {
-      await new Promise(r => setTimeout(r, 900));
-      return p2CallBackend(textContent, formulationRecord, attempt + 1);
-    }
-    throw err;
-  }
-}
-
-async function p2RunCheck(){
-  if (!p2CurrentFile) return;
-  const code = p2FormCodeInput.value.trim();
-  const match = matchFormulationCode(code);
-  if (!match) {
-    p2ShowError(new Error('No formulation found for this code — check your reference sheet or the code entered.'));
+async function loadForEdit(id){
+  const r = await getRecord(id);
+  if(!r){
+    alert("That PI doesn't exist, or it wasn't created by your account.");
+    location.href = 'index.html';
     return;
   }
-
-  p2ErrorBox.style.display = 'none';
-  p2Results.innerHTML = '';
-  p2RunBtn.disabled = true;
-  p2StatusRow.style.display = 'flex';
-  p2StatusText.textContent = 'Reading artwork…';
-
-  let textContent;
-  try {
-    const extraction = await extractPdfContent(p2CurrentFile);
-    if (extraction.text.length > 40) {
-      textContent = [{ type: 'text', text: `Extracted artwork ingredient list / text:\n"""\n${extraction.text.slice(0, 8000)}\n"""` }];
-    } else {
-      const images = await rasterizePagesWithMeta(extraction.pdf);
-      textContent = images.map(img => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img.base64 } }));
-    }
-    textContent.push({ type: 'text', text: 'Cross-check this artwork per your instructions and call submit_ingredient_check with your findings.' });
-  } catch (err) {
-    p2StatusRow.style.display = 'none';
-    p2UpdateRunEnabled();
-    p2ShowError(err);
-    return;
-  }
-
-  try {
-    p2StatusText.textContent = 'Cross-checking ingredients and shelf life…';
-    const data = await p2CallBackend(textContent, match);
-    p2StatusRow.style.display = 'none';
-    p2Results.innerHTML = `<div class="panel">
-      <p class="section-h">Formulation cross-check <span class="part-tag p2" style="margin-left:6px;">Part 2</span></p>
-      <p class="section-sub">${escapeHtml(match.description || match.code)} — vs. formulation code ${escapeHtml(code)}.</p>
-      ${renderChecklist(data.formulation_checks)}
-      ${data.summary ? `<p class="summary-text" style="margin-top:14px;">${escapeHtml(data.summary)}</p>` : ''}
-    </div>`;
-  } catch (err) {
-    p2StatusRow.style.display = 'none';
-    p2ShowError(err);
-  } finally {
-    p2UpdateRunEnabled();
-  }
+  editingId = id;
+  document.getElementById('pageTitle').textContent = 'Edit Proforma Invoice';
+  document.getElementById('submitBtn').textContent = 'Save changes →';
+  document.getElementById('editHint').style.display = 'block';
+  pickCompany(r.company, true);
+  document.getElementById('buyerName').value = r.buyerName||'';
+  document.getElementById('buyerContact').value = r.buyerContact||'';
+  document.getElementById('buyerPhone').value = r.buyerPhone||'';
+  document.getElementById('buyerEmail').value = r.buyerEmail||'';
+  document.getElementById('buyerGST').value = r.buyerGST||'';
+  document.getElementById('buyerAddress').value = r.buyerAddress||'';
+  document.getElementById('piNumber').value = r.piNumber||'';
+  document.getElementById('refPO').value = r.refPO||'';
+  document.getElementById('piDate').value = r.piDate||'';
+  document.getElementById('validUntil').value = r.validUntil||'';
+  document.getElementById('currency').value = r.currency||'₹';
+  document.getElementById('taxPct').value = r.taxPct||18;
+  document.getElementById('tcVersion').value = r.tcVersion||'';
+  document.getElementById('notes').value = r.notes||'';
+  items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.price, i.advancePct, i.advanceGST));
+  renderItemRows();
+  updateSummary();
 }
 
-p2RunBtn.addEventListener('click', p2RunCheck);
+document.getElementById('piForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  if(!selectedCompany){ alert('Please select the selling company.'); return; }
+  if(!document.getElementById('buyerName').value.trim()){ alert('Please enter the buyer name.'); return; }
+  if(items.length===0){ alert('Please add at least one line item.'); return; }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving…';
+
+  const taxPct = +document.getElementById('taxPct').value || 0;
+  const totals = computeTotals(items, taxPct);
+  const record = {
+    id: editingId || undefined,
+    company: selectedCompany,
+    buyerName: document.getElementById('buyerName').value.trim(),
+    buyerContact: document.getElementById('buyerContact').value.trim(),
+    buyerPhone: document.getElementById('buyerPhone').value.trim(),
+    buyerEmail: document.getElementById('buyerEmail').value.trim(),
+    buyerGST: document.getElementById('buyerGST').value.trim(),
+    buyerAddress: document.getElementById('buyerAddress').value.trim(),
+    piNumber: document.getElementById('piNumber').value.trim() || await nextPiNumber(selectedCompany),
+    refPO: document.getElementById('refPO').value.trim(),
+    piDate: document.getElementById('piDate').value,
+    validUntil: document.getElementById('validUntil').value,
+    currency: document.getElementById('currency').value,
+    createdBy: currentUserName,
+    taxPct,
+    notes: document.getElementById('notes').value.trim(),
+    tcVersion: document.getElementById('tcVersion').value,
+    items: items.map(({product,desc,qty,price,advancePct,advanceGST})=>({product,desc,qty,price,advancePct,advanceGST})),
+    subtotal: totals.subtotal, tax: totals.tax, grandTotal: totals.grandTotal,
+    advanceWithoutGST: totals.advanceWithoutGST, advanceWithGST: totals.advanceWithGST,
+    advanceTotal: totals.advanceTotal, balanceDue: totals.balanceDue
+  };
+  const saved = await upsertRecord(record);
+  if(!saved){
+    submitBtn.disabled = false;
+    submitBtn.textContent = editingId ? 'Save changes →' : 'Generate PI →';
+    return;
+  }
+  location.href = 'preview.html?id=' + encodeURIComponent(saved.id);
+});
+
+/* init */
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  currentUserName = getDisplayName(session);
+  document.getElementById('createdByDisplay').value = currentUserName;
+  document.getElementById('creatingAs').textContent = `Creating as ${currentUserName}.`;
+  document.getElementById('submitBtn').disabled = false;
+
+  const editId = qs('id');
+  const today = new Date().toISOString().slice(0,10);
+  const plus30 = new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  if(editId){
+    await loadForEdit(editId);
+  } else {
+    document.getElementById('piDate').value = today;
+    document.getElementById('validUntil').value = plus30;
+    addItem();
+  }
+})();
 </script>
 </body>
 </html>
