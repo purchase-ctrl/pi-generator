@@ -83,9 +83,7 @@ function renderInvoice(r){
     footHtml = `<img class="lh-band footer" src="images/industries-footer.jpg" alt="Sunshine Industries footer">`;
   }
 
-  paperEl.innerHTML = `
-    <div class="print-thead">${headHtml}</div>
-    <div class="print-tbody">
+  const bodyHtml = `
     <div class="title-row">
       <h1>PROFORMA INVOICE</h1>
       <div class="pi-badge">${escHtml(r.piNumber)}</div>
@@ -129,9 +127,14 @@ function renderInvoice(r){
       <div class="k">Terms &amp; Conditions</div>
       <p>${escHtml(r.notes)}</p>
       <div class="stamp">✓ Logged by ${escHtml(r.createdBy)} · ${fmtDateTime(r.createdAt)}</div>
-    </div>
-    </div>
-    <div class="print-tfoot">${footHtml}</div>
+    </div>`;
+
+  paperEl.innerHTML = `
+    <table class="paper-table">
+      <thead><tr><td>${headHtml}</td></tr></thead>
+      <tfoot><tr><td>${footHtml}</td></tr></tfoot>
+      <tbody><tr><td>${bodyHtml}</td></tr></tbody>
+    </table>
   `;
 }
 
