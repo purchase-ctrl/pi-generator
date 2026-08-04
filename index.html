@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>New PI — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html" class="active" id="navNew">① New PI</a>
+    <a href="log.html" id="navLog">③ Log</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2 id="pageTitle">Create a Proforma Invoice</h2>
+    <p>Pick the selling company, enter the client's details, and generate the PI. <span id="creatingAs" style="color:var(--teal-dim);font-weight:600;"></span></p>
+  </div>
+
+  <form id="piForm">
+  <div class="form-layout">
+    <div>
+
+      <div class="section">
+        <h3>Seller — select company</h3>
+        <div class="company-pick" id="companyPick">
+          <button type="button" class="company-card" data-company="cosmetic">
+            <img class="swatch" src="images/cosmetic-logo.jpg" alt="Sunshine Cosmetic Pvt. Ltd. logo">
+            <b>Sunshine Cosmetic Pvt. Ltd.</b>
+            <small>Kundli, Sonepat</small>
+          </button>
+          <button type="button" class="company-card" data-company="industries">
+            <img class="swatch" src="images/industries-logo.jpg" alt="Sunshine Industries logo">
+            <b>Sunshine Industries</b>
+            <small>Baddi, Himachal Pradesh</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Buyer</h3>
+        <div class="field"><label>Company / name *</label><input id="buyerName" required placeholder="Glamirk"></div>
+        <div class="row2">
+          <div class="field"><label>Contact person</label><input id="buyerContact" placeholder="Ajay"></div>
+          <div class="field"><label>Phone</label><input id="buyerPhone" placeholder="9560762456"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Email</label><input id="buyerEmail" placeholder="buyer@email.com" type="email"></div>
+          <div class="field"><label>GSTIN</label><input id="buyerGST" placeholder="22AAAAA0000A1Z5" style="text-transform:uppercase;"></div>
+        </div>
+        <div class="field"><label>Billing address</label><textarea id="buyerAddress" placeholder="Buyer's billing address"></textarea></div>
+      </div>
+
+      <div class="section">
+        <h3>Invoice details</h3>
+        <div class="row2">
+          <div class="field"><label>PI number</label><input id="piNumber" placeholder="auto"></div>
+          <div class="field"><label>Reference PO number</label><input id="refPO" placeholder="Buyer's PO number (optional)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>PI date</label><input type="date" id="piDate"></div>
+          <div class="field"><label>Valid until</label><input type="date" id="validUntil"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Currency</label>
+            <select id="currency">
+              <option value="₹">INR (₹)</option>
+              <option value="$">USD ($)</option>
+              <option value="€">EUR (€)</option>
+              <option value="£">GBP (£)</option>
+            </select>
+          </div>
+          <div class="field"><label>Created by</label><input id="createdByDisplay" disabled style="background:#F3EFE7;color:var(--muted);"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Items</h3>
+        <div id="itemRows"></div>
+        <button type="button" class="add-item" onclick="addItem()">+ Add line item</button>
+        <div class="field" style="margin-top:12px;"><label>Tax % (on invoice subtotal)</label><input type="number" id="taxPct" value="18" min="0" step="0.5" style="max-width:120px;"></div>
+      </div>
+
+      <div class="section">
+        <h3>Terms &amp; Conditions</h3>
+        <div class="field">
+          <label>Select version</label>
+          <select id="tcVersion" onchange="applyTC(this.value)">
+            <option value="">-- Select --</option>
+            <option value="v1">TC (V1)</option>
+            <option value="v2">TC (V2)</option>
+            <option value="custom">Custom / edit manually</option>
+          </select>
+        </div>
+        <div class="field"><textarea id="notes" rows="6" placeholder="Pick a version above, or write your own terms here.">Payment and delivery terms to be mutually agreed.</textarea></div>
+      </div>
+
+    </div>
+
+    <div>
+      <div class="side-summary">
+        <h3>Summary</h3>
+        <div class="tline"><span>Selling company</span><b id="sumCompany" style="color:#fff;">—</b></div>
+        <div class="tline"><span>Items</span><b id="sumItems" style="color:#fff;">0</b></div>
+        <div class="tline"><span>Subtotal</span><span id="sumSubtotal">0.00</span></div>
+        <div class="tline" id="sumAdvNoGSTRow" style="display:none;"><span>Advance required</span><span id="sumAdvNoGST">0.00</span></div>
+        <div class="tline"><span id="sumTaxLabel">Tax (18%)</span><span id="sumTax">0.00</span></div>
+        <div class="grand"><span>Grand total</span><span id="sumGrand">0.00</span></div>
+        <div class="tline" id="sumAdvGSTRow" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.2);"><span>Advance required</span><span id="sumAdvGST">0.00</span></div>
+        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Generate PI →</button>
+        <div class="hint" id="editHint" style="display:none;">Editing existing PI — saving will update it.</div>
+      </div>
+    </div>
+  </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+let items = [];
+let idSeed = 1;
+let editingId = null;
+let currentUserName = '';
+
+function newItem(product="", desc="", qty=1, price=0, advancePct=0, advanceGST="without"){
+  return {id: idSeed++, product, desc, qty, price, advancePct, advanceGST};
+}
+
+function addItem(product,desc,qty,price,advancePct,advanceGST){
+  items.push(newItem(product,desc,qty,price,advancePct,advanceGST));
+  renderItemRows();
+  updateSummary();
+}
+function removeItem(id){
+  items = items.filter(i=>i.id!==id);
+  renderItemRows();
+  updateSummary();
+}
+function renderItemRows(){
+  document.getElementById('itemRows').innerHTML = items.map(i=>`
+    <div class="item-card">
+      <div class="item-card-row1">
+        <input value="${escHtml(i.product)}" placeholder="Product name" oninput="items.find(x=>x.id===${i.id}).product=this.value; updateSummary();">
+        <input value="${escHtml(i.desc)}" placeholder="Description" oninput="items.find(x=>x.id===${i.id}).desc=this.value; updateSummary();">
+        <button type="button" class="rm-btn" onclick="removeItem(${i.id})">✕</button>
+      </div>
+      <div class="item-card-row2">
+        <div><label>Quantity</label><input type="number" min="0" value="${i.qty}" oninput="items.find(x=>x.id===${i.id}).qty=+this.value||0; updateSummary();"></div>
+        <div><label>Price</label><input type="number" min="0" step="0.01" value="${i.price}" oninput="items.find(x=>x.id===${i.id}).price=+this.value||0; updateSummary();"></div>
+        <div><label>Advance % required</label><input type="number" min="0" max="100" value="${i.advancePct}" oninput="items.find(x=>x.id===${i.id}).advancePct=+this.value||0; updateSummary();"></div>
+        <div><label>Advance</label>
+          <select onchange="items.find(x=>x.id===${i.id}).advanceGST=this.value; updateSummary();">
+            <option value="without" ${i.advanceGST==='without'?'selected':''}>Without GST</option>
+            <option value="with" ${i.advanceGST==='with'?'selected':''}>With GST</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let selectedCompany = null;
+async function pickCompany(key, silent){
+  selectedCompany = key;
+  document.querySelectorAll('.company-card').forEach(c=>c.classList.toggle('selected', c.dataset.company===key));
+  if(!silent){
+    const currentNum = document.getElementById('piNumber').value.trim();
+    if(!editingId && (!currentNum || currentNum.startsWith('PI-'))){
+      document.getElementById('piNumber').value = await nextPiNumber(key);
+    }
+  }
+  updateSummary();
+}
+document.querySelectorAll('.company-card').forEach(card=>{
+  card.addEventListener('click', ()=>pickCompany(card.dataset.company));
+});
+
+function updateSummary(){
+  document.getElementById('sumCompany').textContent = selectedCompany ? COMPANIES[selectedCompany].short : '—';
+  document.getElementById('sumItems').textContent = items.length;
+  const taxPct = +document.getElementById('taxPct').value || 0;
+  const {subtotal, tax, grandTotal, advanceWithoutGST, advanceWithGST} = computeTotals(items, taxPct);
+  const cur = document.getElementById('currency').value;
+  document.getElementById('sumSubtotal').textContent = cur + fmtMoney(subtotal);
+  document.getElementById('sumTaxLabel').textContent = `Tax (${taxPct}%)`;
+  document.getElementById('sumTax').textContent = cur + fmtMoney(tax);
+  document.getElementById('sumGrand').textContent = cur + fmtMoney(grandTotal);
+  document.getElementById('sumAdvNoGSTRow').style.display = advanceWithoutGST > 0 ? 'flex' : 'none';
+  document.getElementById('sumAdvNoGST').textContent = cur + fmtMoney(advanceWithoutGST);
+  document.getElementById('sumAdvGSTRow').style.display = advanceWithGST > 0 ? 'flex' : 'none';
+  document.getElementById('sumAdvGST').textContent = cur + fmtMoney(advanceWithGST);
+}
+
+document.getElementById('taxPct').addEventListener('input', updateSummary);
+document.getElementById('currency').addEventListener('change', updateSummary);
+
+function applyTC(version){
+  const notesEl = document.getElementById('notes');
+  if(version === 'v1' || version === 'v2'){
+    notesEl.value = TC_VERSIONS[version];
+  } else if(version === ''){
+    notesEl.value = '';
+  }
+}
+document.getElementById('notes').addEventListener('input', function(){
+  const sel = document.getElementById('tcVersion');
+  if(sel.value === 'v1' || sel.value === 'v2'){
+    if(this.value !== TC_VERSIONS[sel.value]) sel.value = 'custom';
+  }
+});
+
+async function loadForEdit(id){
+  const r = await getRecord(id);
+  if(!r){
+    alert("That PI doesn't exist, or it wasn't created by your account.");
+    location.href = 'index.html';
+    return;
+  }
+  editingId = id;
+  document.getElementById('pageTitle').textContent = 'Edit Proforma Invoice';
+  document.getElementById('submitBtn').textContent = 'Save changes →';
+  document.getElementById('editHint').style.display = 'block';
+  pickCompany(r.company, true);
+  document.getElementById('buyerName').value = r.buyerName||'';
+  document.getElementById('buyerContact').value = r.buyerContact||'';
+  document.getElementById('buyerPhone').value = r.buyerPhone||'';
+  document.getElementById('buyerEmail').value = r.buyerEmail||'';
+  document.getElementById('buyerGST').value = r.buyerGST||'';
+  document.getElementById('buyerAddress').value = r.buyerAddress||'';
+  document.getElementById('piNumber').value = r.piNumber||'';
+  document.getElementById('refPO').value = r.refPO||'';
+  document.getElementById('piDate').value = r.piDate||'';
+  document.getElementById('validUntil').value = r.validUntil||'';
+  document.getElementById('currency').value = r.currency||'₹';
+  document.getElementById('taxPct').value = r.taxPct||18;
+  document.getElementById('tcVersion').value = r.tcVersion||'';
+  document.getElementById('notes').value = r.notes||'';
+  items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.price, i.advancePct, i.advanceGST));
+  renderItemRows();
+  updateSummary();
+}
+
+document.getElementById('piForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  if(!selectedCompany){ alert('Please select the selling company.'); return; }
+  if(!document.getElementById('buyerName').value.trim()){ alert('Please enter the buyer name.'); return; }
+  if(items.length===0){ alert('Please add at least one line item.'); return; }
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving…';
+
+  const taxPct = +document.getElementById('taxPct').value || 0;
+  const totals = computeTotals(items, taxPct);
+  const record = {
+    id: editingId || undefined,
+    company: selectedCompany,
+    buyerName: document.getElementById('buyerName').value.trim(),
+    buyerContact: document.getElementById('buyerContact').value.trim(),
+    buyerPhone: document.getElementById('buyerPhone').value.trim(),
+    buyerEmail: document.getElementById('buyerEmail').value.trim(),
+    buyerGST: document.getElementById('buyerGST').value.trim(),
+    buyerAddress: document.getElementById('buyerAddress').value.trim(),
+    piNumber: document.getElementById('piNumber').value.trim() || await nextPiNumber(selectedCompany),
+    refPO: document.getElementById('refPO').value.trim(),
+    piDate: document.getElementById('piDate').value,
+    validUntil: document.getElementById('validUntil').value,
+    currency: document.getElementById('currency').value,
+    createdBy: currentUserName,
+    taxPct,
+    notes: document.getElementById('notes').value.trim(),
+    tcVersion: document.getElementById('tcVersion').value,
+    items: items.map(({product,desc,qty,price,advancePct,advanceGST})=>({product,desc,qty,price,advancePct,advanceGST})),
+    subtotal: totals.subtotal, tax: totals.tax, grandTotal: totals.grandTotal,
+    advanceWithoutGST: totals.advanceWithoutGST, advanceWithGST: totals.advanceWithGST,
+    advanceTotal: totals.advanceTotal, balanceDue: totals.balanceDue
+  };
+  const saved = await upsertRecord(record);
+  if(!saved){
+    submitBtn.disabled = false;
+    submitBtn.textContent = editingId ? 'Save changes →' : 'Generate PI →';
+    return;
+  }
+  location.href = 'preview.html?id=' + encodeURIComponent(saved.id);
+});
+
+/* init */
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  currentUserName = getDisplayName(session);
+  document.getElementById('createdByDisplay').value = currentUserName;
+  document.getElementById('creatingAs').textContent = `Creating as ${currentUserName}.`;
+  document.getElementById('submitBtn').disabled = false;
+
+  const editId = qs('id');
+  const today = new Date().toISOString().slice(0,10);
+  const plus30 = new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  if(editId){
+    await loadForEdit(editId);
+  } else {
+    document.getElementById('piDate').value = today;
+    document.getElementById('validUntil').value = plus30;
+    addItem();
+  }
+})();
+</script>
+</body>
+</html>

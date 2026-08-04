@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>PI Preview — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html">③ Log</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2>② Result</h2>
+    <p>This is the generated Proforma Invoice — the header and footer match the selected company automatically.</p>
+  </div>
+
+  <div class="paper-actions">
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+    <a class="btn btn-outline" id="editLink" href="#">✎ Edit this PI</a>
+    <a class="btn btn-outline" href="log.html">☰ Back to Log</a>
+    <a class="btn btn-outline" href="index.html">+ New PI</a>
+  </div>
+
+  <div class="paper-outer">
+    <div class="paper" id="paper">
+      <!-- filled by script -->
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+const paperEl = document.getElementById('paper');
+
+function renderInvoice(r){
+  const co = COMPANIES[r.company];
+  paperEl.setAttribute('data-theme', r.company);
+
+  const itemRows = r.items.map(i=>{
+    const amt = (i.qty||0)*(i.price||0);
+    const advLabel = (i.advancePct||0) > 0 ? `${i.advancePct}%` : '—';
+    return `<tr>
+      <td>${escHtml(i.product)||'—'}</td>
+      <td>${escHtml(i.desc)||'—'}</td>
+      <td>${i.qty||0}</td>
+      <td>${r.currency}${fmtMoney(i.price)}</td>
+      <td>${advLabel}</td>
+      <td>${r.currency}${fmtMoney(amt)}</td>
+    </tr>`;
+  }).join('');
+
+  let headHtml, footHtml;
+
+  if(r.company === 'cosmetic'){
+    headHtml = `
+      <img class="lh-band header" src="images/cosmetic-header.jpg" alt="Sunshine Cosmetic Pvt. Ltd. letterhead">
+      <div class="co-id">
+        <img class="mini-mark" src="images/cosmetic-logo.jpg" alt="Sunshine Cosmetic logo">
+        <div><h2>${co.label}</h2><p>${co.address}</p></div>
+      </div>`;
+    footHtml = `<img class="lh-band footer" src="images/cosmetic-footer.jpg" alt="Sunshine Cosmetic Pvt. Ltd. footer">`;
+  } else {
+    headHtml = `
+      <img class="lh-band header" src="images/industries-header.jpg" alt="Sunshine Industries letterhead">
+      <div class="co-id">
+        <h2>${co.label}</h2><p>${co.address}</p>
+      </div>`;
+    footHtml = `<img class="lh-band footer" src="images/industries-footer.jpg" alt="Sunshine Industries footer">`;
+  }
+
+  paperEl.innerHTML = headHtml + `
+    <div class="title-row">
+      <h1>PROFORMA INVOICE</h1>
+      <div class="pi-badge">${escHtml(r.piNumber)}</div>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-col">
+        <div class="k">Buyer</div>
+        <div class="name">${escHtml(r.buyerName)}</div>
+        <div class="line">${escHtml(r.buyerContact)}</div>
+        <div class="line">${escHtml(r.buyerPhone)}</div>
+        <div class="line">${escHtml(r.buyerEmail)}</div>
+        ${r.buyerAddress ? `<div class="line">${escHtml(r.buyerAddress)}</div>` : ''}
+        ${r.buyerGST ? `<div class="line"><b>GSTIN:</b> ${escHtml(r.buyerGST)}</div>` : ''}
+      </div>
+      <div class="meta-col">
+        <div class="k">Invoice details</div>
+        ${r.refPO ? `<div class="meta-line-pair"><b>Ref. PO number</b><span>${escHtml(r.refPO)}</span></div>` : ''}
+        <div class="meta-line-pair"><b>PI date</b><span>${fmtDate(r.piDate)}</span></div>
+        <div class="meta-line-pair"><b>Valid until</b><span>${fmtDate(r.validUntil)}</span></div>
+        <div class="meta-line-pair"><b>Currency</b><span>${r.currency}</span></div>
+      </div>
+    </div>
+    <div class="items-wrap">
+      <table class="items">
+        <thead><tr><th>Product</th><th>Description</th><th>Qty</th><th>Price</th><th>Advance</th><th>Amount</th></tr></thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+    </div>
+    <div class="totals-wrap">
+      <div class="totals">
+        <div class="tline"><span>Subtotal</span><b>${r.currency}${fmtMoney(r.subtotal)}</b></div>
+        ${(r.advanceWithoutGST||0) > 0 ? `
+        <div class="tline"><span>Advance required</span><b>${r.currency}${fmtMoney(r.advanceWithoutGST)}</b></div>` : ''}
+        <div class="tline"><span>Tax (${r.taxPct}%)</span><b>${r.currency}${fmtMoney(r.tax)}</b></div>
+        <div class="grand"><span>Grand total</span><span>${r.currency}${fmtMoney(r.grandTotal)}</span></div>
+        ${(r.advanceWithGST||0) > 0 ? `
+        <div class="tline" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);"><span>Advance required</span><b>${r.currency}${fmtMoney(r.advanceWithGST)}</b></div>` : ''}
+      </div>
+    </div>
+    <div class="notes-wrap">
+      <div class="k">Terms &amp; Conditions</div>
+      <p>${escHtml(r.notes)}</p>
+      <div class="stamp">✓ Logged by ${escHtml(r.createdBy)} · ${fmtDateTime(r.createdAt)}</div>
+    </div>
+  ` + footHtml;
+}
+
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+
+  const id = qs('id');
+  const r = id ? await getRecord(id) : null;
+
+  if(!r){
+    paperEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted);">
+      No PI found — it may not exist, or it wasn't created by your account.
+      <a href="index.html" style="color:var(--coral);font-weight:600;">Create a new one</a> or check the
+      <a href="log.html" style="color:var(--coral);font-weight:600;">Log</a>.
+    </div>`;
+    document.getElementById('editLink').style.display = 'none';
+    return;
+  }
+  document.getElementById('editLink').href = 'index.html?id=' + encodeURIComponent(r.id);
+  renderInvoice(r);
+})();
+</script>
+</body>
+</html>

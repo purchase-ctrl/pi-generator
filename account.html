@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Account — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html">③ Log</a>
+    <a href="account.html" class="active">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap" style="max-width:480px;">
+  <div class="page-head">
+    <h2>👤 Your account</h2>
+    <p>Your PIs are private to this account — no one else can see or open them, even if they know the link.</p>
+  </div>
+
+  <div class="section">
+    <h3>Signed in as</h3>
+    <div class="field"><label>Name</label><input id="curName" disabled style="background:#F3EFE7;color:var(--muted);"></div>
+    <div class="field"><label>Email</label><input id="curEmail" disabled style="background:#F3EFE7;color:var(--muted);"></div>
+  </div>
+
+  <div class="section">
+    <h3>Change password</h3>
+    <div class="field"><label>Current password</label><input type="password" id="currentPass" autocomplete="current-password"></div>
+    <div class="field"><label>New password</label><input type="password" id="newPass" autocomplete="new-password"></div>
+    <div class="field"><label>Confirm new password</label><input type="password" id="confirmPass" autocomplete="new-password"></div>
+    <button type="button" class="btn btn-primary" onclick="changePassword()">Update password</button>
+    <div id="passMsg" style="display:none;margin-top:10px;padding:9px 12px;border-radius:7px;border:1px solid;font-size:.8rem;"></div>
+  </div>
+
+  <div class="section">
+    <h3>Session</h3>
+    <button type="button" onclick="logout()" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:600;font-size:.86rem;cursor:pointer;">Log out</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+let currentEmail = '';
+
+function showMsg(text, isError){
+  const el = document.getElementById('passMsg');
+  el.textContent = text;
+  el.style.color = isError ? 'var(--danger)' : 'var(--ok)';
+  el.style.borderColor = isError ? 'var(--danger)' : 'var(--ok)';
+  el.style.background = isError ? '#FBEAE8' : '#E9F5EF';
+  el.style.display = 'block';
+}
+
+async function changePassword(){
+  const current = document.getElementById('currentPass').value;
+  const next = document.getElementById('newPass').value;
+  const confirmVal = document.getElementById('confirmPass').value;
+
+  if(!current){ showMsg('Enter your current password.', true); return; }
+  if(!next || next.length < 6){ showMsg('New password must be at least 6 characters.', true); return; }
+  if(next !== confirmVal){ showMsg('New password and confirmation do not match.', true); return; }
+
+  /* Re-verify identity by signing in again with the current password before allowing the change */
+  const { error: verifyError } = await sb.auth.signInWithPassword({ email: currentEmail, password: current });
+  if(verifyError){ showMsg('Current password is incorrect.', true); return; }
+
+  const { error } = await sb.auth.updateUser({ password: next });
+  if(error){ showMsg(error.message, true); return; }
+
+  showMsg('Password updated.', false);
+  document.getElementById('currentPass').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('confirmPass').value = '';
+}
+
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  currentEmail = session.user.email;
+  document.getElementById('curName').value = getDisplayName(session);
+  document.getElementById('curEmail').value = currentEmail;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>PI Log — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html" class="active" id="navLog">③ Log</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2>③ PI Log</h2>
+    <p>Every Proforma Invoice <b>you've</b> generated — signed in as a different account? You'll only ever see your own here.</p>
+  </div>
+
+  <div class="log-toolbar">
+    <input id="search" placeholder="Search PI number or buyer…">
+    <span class="log-count" id="count"></span>
+  </div>
+
+  <div class="log-table-wrap" id="tableWrap">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+let allRecords = [];
+
+function render(filter){
+  const all = allRecords;
+  const f = (filter||'').toLowerCase();
+  const rows = all.filter(r =>
+    !f ||
+    r.piNumber.toLowerCase().includes(f) ||
+    r.buyerName.toLowerCase().includes(f)
+  );
+  document.getElementById('count').textContent = `${rows.length} of ${all.length} PI${all.length===1?'':'s'}`;
+
+  const wrap = document.getElementById('tableWrap');
+  if(all.length===0){
+    wrap.innerHTML = `<div class="empty-state">No PIs generated yet. <a href="index.html">Create your first one →</a></div>`;
+    return;
+  }
+  if(rows.length===0){
+    wrap.innerHTML = `<div class="empty-state">No matches for "${escHtml(filter)}".</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="log">
+      <thead><tr>
+        <th>PI number</th><th>Date</th><th>Company</th><th>Buyer</th><th>Created by</th><th>Grand total</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r=>{
+          const co = COMPANIES[r.company];
+          return `<tr>
+            <td data-label="PI number"><b>${escHtml(r.piNumber)}</b></td>
+            <td data-label="Date">${fmtDate(r.piDate)}</td>
+            <td data-label="Company"><span class="tag ${r.company}">${co.short}</span></td>
+            <td data-label="Buyer">${escHtml(r.buyerName)}</td>
+            <td data-label="Created by">${escHtml(r.createdBy)}</td>
+            <td data-label="Grand total">${r.currency}${fmtMoney(r.grandTotal)}</td>
+            <td data-label="Actions">
+              <div class="log-actions">
+                <a href="preview.html?id=${encodeURIComponent(r.id)}">View</a>
+                <a href="index.html?id=${encodeURIComponent(r.id)}">Edit</a>
+                <button class="del" onclick="handleDelete('${r.id}')">Delete</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function handleDelete(id){
+  const rec = allRecords.find(r=>r.id===id);
+  const label = rec ? rec.piNumber : 'this PI';
+  if(confirm(`Delete ${label}? This can't be undone.`)){
+    await deleteRecord(id);
+    allRecords = await getLog();
+    render(document.getElementById('search').value);
+  }
+}
+
+document.getElementById('search').addEventListener('input', e => render(e.target.value));
+
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  allRecords = await getLog();
+  render('');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Log in — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brandmark">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </div>
+</div>
+
+<div class="page-wrap" style="max-width:420px;">
+  <div class="page-head">
+    <h2 id="pageTitle">Log in</h2>
+    <p id="pageSub">Sign in to see and create your Proforma Invoices.</p>
+  </div>
+
+  <div class="section">
+    <div class="field" id="nameField" style="display:none;">
+      <label>Full name</label>
+      <input id="fullName" placeholder="e.g. Nihar Arora">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input id="email" type="email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+    <button type="button" class="btn btn-primary" id="submitBtn" onclick="handleSubmit()">Log in</button>
+    <div id="msg" style="display:none;margin-top:10px;padding:9px 12px;border-radius:7px;border:1px solid;font-size:.8rem;"></div>
+    <p style="text-align:center;font-size:.82rem;margin-top:16px;color:var(--muted);">
+      <a href="#" id="toggleLink" style="color:var(--coral);font-weight:600;text-decoration:none;">Need an account? Sign up</a>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script>
+let mode = 'login';
+
+document.getElementById('toggleLink').addEventListener('click', function(e){
+  e.preventDefault();
+  mode = (mode === 'login') ? 'signup' : 'login';
+  render();
+});
+
+function render(){
+  const isSignup = mode === 'signup';
+  document.getElementById('pageTitle').textContent = isSignup ? 'Create an account' : 'Log in';
+  document.getElementById('pageSub').textContent = isSignup
+    ? 'Set up your account to start creating your own Proforma Invoices.'
+    : 'Sign in to see and create your Proforma Invoices.';
+  document.getElementById('nameField').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('submitBtn').textContent = isSignup ? 'Sign up' : 'Log in';
+  document.getElementById('toggleLink').textContent = isSignup ? 'Already have an account? Log in' : 'Need an account? Sign up';
+  document.getElementById('msg').style.display = 'none';
+}
+render();
+
+function showMsg(text, isError){
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.style.color = isError ? 'var(--danger)' : 'var(--ok)';
+  el.style.borderColor = isError ? 'var(--danger)' : 'var(--ok)';
+  el.style.background = isError ? '#FBEAE8' : '#E9F5EF';
+  el.style.display = 'block';
+}
+
+async function handleSubmit(){
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('submitBtn');
+
+  if(!email || !password){ showMsg('Enter both email and password.', true); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Please wait…';
+
+  if(mode === 'signup'){
+    const fullName = document.getElementById('fullName').value.trim();
+    if(!fullName){ showMsg('Enter your full name.', true); btn.disabled=false; btn.textContent='Sign up'; return; }
+    if(password.length < 6){ showMsg('Password must be at least 6 characters.', true); btn.disabled=false; btn.textContent='Sign up'; return; }
+
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: { data: { full_name: fullName } }
+    });
+    if(error){
+      showMsg(error.message, true);
+      btn.disabled = false; btn.textContent = 'Sign up';
+      return;
+    }
+    if(data.session){
+      location.href = 'index.html';
+    } else {
+      showMsg('Account created. Check your email to confirm it, then log in.', false);
+      mode = 'login'; render();
+      btn.disabled = false;
+    }
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      showMsg(error.message, true);
+      btn.disabled = false; btn.textContent = 'Log in';
+      return;
+    }
+    location.href = 'index.html';
+  }
+}
+
+/* If already logged in, skip straight to the app */
+(async function checkExisting(){
+  const session = await getSession();
+  if(session) location.href = 'index.html';
+})();
+</script>
+</body>
+</html>
