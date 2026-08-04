@@ -133,6 +133,8 @@ let items = [];
 let idSeed = 1;
 let editingId = null;
 let currentUserName = '';
+let currentUserId = null;
+let isCurrentUserAdmin = false;
 
 function newItem(product="", desc="", qty=1, price=0, advancePct=0, advanceGST="without"){
   return {id: idSeed++, product, desc, qty, price, advancePct, advanceGST};
@@ -224,8 +226,13 @@ document.getElementById('notes').addEventListener('input', function(){
 async function loadForEdit(id){
   const r = await getRecord(id);
   if(!r){
-    alert("That PI doesn't exist, or it wasn't created by your account.");
+    alert("That PI doesn't exist.");
     location.href = 'index.html';
+    return;
+  }
+  if(r.userId !== currentUserId && !isCurrentUserAdmin){
+    alert("You can only edit PIs you created yourself. Opening it for viewing instead.");
+    location.href = 'preview.html?id=' + encodeURIComponent(id);
     return;
   }
   editingId = id;
@@ -301,6 +308,8 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
   const session = await requireAuth();
   if(!session) return;
   currentUserName = getDisplayName(session);
+  currentUserId = session.user.id;
+  isCurrentUserAdmin = await getIsAdmin(currentUserId);
   document.getElementById('createdByDisplay').value = currentUserName;
   document.getElementById('creatingAs').textContent = `Creating as ${currentUserName}.`;
   document.getElementById('submitBtn').disabled = false;

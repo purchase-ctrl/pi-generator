@@ -140,14 +140,19 @@ function renderInvoice(r){
 
   if(!r){
     paperEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted);">
-      No PI found — it may not exist, or it wasn't created by your account.
+      No PI found with that link.
       <a href="index.html" style="color:var(--coral);font-weight:600;">Create a new one</a> or check the
       <a href="log.html" style="color:var(--coral);font-weight:600;">Log</a>.
     </div>`;
     document.getElementById('editLink').style.display = 'none';
     return;
   }
-  document.getElementById('editLink').href = 'index.html?id=' + encodeURIComponent(r.id);
+  const isAdmin = await getIsAdmin(session.user.id);
+  if(r.userId === session.user.id || isAdmin){
+    document.getElementById('editLink').href = 'index.html?id=' + encodeURIComponent(r.id);
+  } else {
+    document.getElementById('editLink').style.display = 'none';
+  }
   renderInvoice(r);
 })();
 </script>

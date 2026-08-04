@@ -198,8 +198,9 @@ async function getLog(){
   return data.map(rowToRecord);
 }
 /* Shared log listing: uses the get_pi_log() Postgres function, which can see
-   every PI regardless of who created it, but only returns summary columns
-   (no buyer contact info, GST, items, or notes) — safe to show to the whole team. */
+   every PI regardless of who created it, but only returns summary columns —
+   no buyer contact info, GST, items, notes, or money amounts. Only the
+   creator (or an admin) sees the actual total, via the full record. */
 async function getLogSummary(){
   const { data, error } = await sb.rpc('get_pi_log');
   if(error){ console.error(error); return []; }
@@ -210,10 +211,14 @@ async function getLogSummary(){
     piDate: row.pi_date,
     company: row.company,
     buyerName: row.buyer_name,
-    createdBy: row.created_by,
-    currency: row.currency,
-    grandTotal: row.grand_total
+    createdBy: row.created_by
   }));
+}
+/* Admins can view/edit/delete any PI, not just their own. */
+async function getIsAdmin(userId){
+  const { data, error } = await sb.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+  if(error || !data) return false;
+  return !!data.is_admin;
 }
 async function getRecord(id){
   const { data, error } = await sb.from('pis').select('*').eq('id', id).maybeSingle();

@@ -31,6 +31,7 @@
     <h3>Signed in as</h3>
     <div class="field"><label>Name</label><input id="curName" disabled style="background:#F3EFE7;color:var(--muted);"></div>
     <div class="field"><label>Email</label><input id="curEmail" disabled style="background:#F3EFE7;color:var(--muted);"></div>
+    <div class="field"><label>Role</label><input id="curRole" disabled style="background:#F3EFE7;color:var(--muted);"></div>
   </div>
 
   <div class="section">
@@ -91,6 +92,8 @@ async function changePassword(){
   currentEmail = session.user.email;
   document.getElementById('curName').value = getDisplayName(session);
   document.getElementById('curEmail').value = currentEmail;
+  const admin = await getIsAdmin(session.user.id);
+  document.getElementById('curRole').value = admin ? 'Admin — can view/edit/delete any PI' : 'Team member';
 })();
 </script>
 </body>
