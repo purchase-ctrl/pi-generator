@@ -1,0 +1,9 @@
+{
+  "name": "artwork-compliance-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone artwork spelling & compliance checker with a secure backend.",
+  "engines": {
+    "node": ">=18.x"
+  }
+}
