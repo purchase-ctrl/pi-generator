@@ -136,6 +136,7 @@ async function logout(){
 function rowToRecord(row){
   return {
     id: row.id,
+    userId: row.user_id,
     company: row.company,
     piNumber: row.pi_number,
     refPO: row.ref_po || '',
@@ -195,6 +196,24 @@ async function getLog(){
   const { data, error } = await sb.from('pis').select('*').order('created_at', {ascending:false});
   if(error){ console.error(error); return []; }
   return data.map(rowToRecord);
+}
+/* Shared log listing: uses the get_pi_log() Postgres function, which can see
+   every PI regardless of who created it, but only returns summary columns
+   (no buyer contact info, GST, items, or notes) — safe to show to the whole team. */
+async function getLogSummary(){
+  const { data, error } = await sb.rpc('get_pi_log');
+  if(error){ console.error(error); return []; }
+  return data.map(row => ({
+    id: row.id,
+    userId: row.user_id,
+    piNumber: row.pi_number,
+    piDate: row.pi_date,
+    company: row.company,
+    buyerName: row.buyer_name,
+    createdBy: row.created_by,
+    currency: row.currency,
+    grandTotal: row.grand_total
+  }));
 }
 async function getRecord(id){
   const { data, error } = await sb.from('pis').select('*').eq('id', id).maybeSingle();

@@ -24,7 +24,7 @@
 <div class="page-wrap">
   <div class="page-head">
     <h2>③ PI Log</h2>
-    <p>Every Proforma Invoice <b>you've</b> generated — signed in as a different account? You'll only ever see your own here.</p>
+    <p>Every Proforma Invoice the team has generated shows up here. Opening, editing, or deleting one is limited to whoever created it.</p>
   </div>
 
   <div class="log-toolbar">
@@ -40,6 +40,7 @@
 <script src="app.js"></script>
 <script>
 let allRecords = [];
+let currentUserId = null;
 
 function render(filter){
   const all = allRecords;
@@ -69,6 +70,7 @@ function render(filter){
       <tbody>
         ${rows.map(r=>{
           const co = COMPANIES[r.company];
+          const mine = r.userId === currentUserId;
           return `<tr>
             <td data-label="PI number"><b>${escHtml(r.piNumber)}</b></td>
             <td data-label="Date">${fmtDate(r.piDate)}</td>
@@ -77,11 +79,11 @@ function render(filter){
             <td data-label="Created by">${escHtml(r.createdBy)}</td>
             <td data-label="Grand total">${r.currency}${fmtMoney(r.grandTotal)}</td>
             <td data-label="Actions">
-              <div class="log-actions">
+              ${mine ? `<div class="log-actions">
                 <a href="preview.html?id=${encodeURIComponent(r.id)}">View</a>
                 <a href="index.html?id=${encodeURIComponent(r.id)}">Edit</a>
                 <button class="del" onclick="handleDelete('${r.id}')">Delete</button>
-              </div>
+              </div>` : `<span style="font-size:.75rem;color:var(--muted);">— not yours —</span>`}
             </td>
           </tr>`;
         }).join('')}
@@ -94,7 +96,7 @@ async function handleDelete(id){
   const label = rec ? rec.piNumber : 'this PI';
   if(confirm(`Delete ${label}? This can't be undone.`)){
     await deleteRecord(id);
-    allRecords = await getLog();
+    allRecords = await getLogSummary();
     render(document.getElementById('search').value);
   }
 }
@@ -104,7 +106,8 @@ document.getElementById('search').addEventListener('input', e => render(e.target
 (async function init(){
   const session = await requireAuth();
   if(!session) return;
-  allRecords = await getLog();
+  currentUserId = session.user.id;
+  allRecords = await getLogSummary();
   render('');
 })();
 </script>
