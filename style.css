@@ -217,6 +217,13 @@ table.log tbody tr:hover{background:#FFF7F1;}
   .topbar,.paper-actions,.page-head{display:none !important;}
   .page-wrap{padding:0;max-width:100%;}
   .paper{box-shadow:none;max-width:100%;}
+  /* Repeat the letterhead header and footer on every printed page, using
+     the CSS table model: browsers repeat table-header-group/footer-group
+     content on each page a table breaks across. */
+  .paper{display:table;width:100%;}
+  .print-thead{display:table-header-group;}
+  .print-tbody{display:table-row-group;}
+  .print-tfoot{display:table-footer-group;}
   .co-id{padding-top:8px !important;padding-bottom:2px !important;}
   .co-id p{max-width:none;}
   .co-id h2{margin-bottom:0 !important;}
