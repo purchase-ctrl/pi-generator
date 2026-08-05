@@ -243,7 +243,14 @@ async function getRecord(id){
 async function upsertRecord(record){
   const row = recordToRow(record);
   const { data, error } = await sb.from('pis').upsert(row).select().maybeSingle();
-  if(error){ alert('Save failed: ' + error.message); return null; }
+  if(error){
+    if(error.code === '23505'){
+      alert('That PI number already exists for this company. Please try saving again.');
+    } else {
+      alert('Save failed: ' + error.message);
+    }
+    return null;
+  }
   return rowToRecord(data);
 }
 async function deleteRecord(id){
