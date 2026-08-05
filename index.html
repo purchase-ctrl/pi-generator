@@ -69,7 +69,7 @@
       <div class="section">
         <h3>Invoice details</h3>
         <div class="row2">
-          <div class="field"><label>PI number</label><input id="piNumber" placeholder="auto"></div>
+          <div class="field"><label>PI number</label><input id="piNumberDisplay" disabled style="background:#F3EFE7;color:var(--muted);" placeholder="Assigned automatically when saved"></div>
           <div class="field"><label>Reference PO number</label><input id="refPO" placeholder="Buyer's PO number (optional)"></div>
         </div>
         <div class="row2">
@@ -137,6 +137,7 @@
 let items = [];
 let idSeed = 1;
 let editingId = null;
+let editingPiNumber = null;
 let currentUserName = '';
 let currentUserId = null;
 let isCurrentUserAdmin = false;
@@ -179,14 +180,11 @@ function renderItemRows(){
 }
 
 let selectedCompany = null;
-async function pickCompany(key, silent){
+function pickCompany(key){
   selectedCompany = key;
   document.querySelectorAll('.company-card').forEach(c=>c.classList.toggle('selected', c.dataset.company===key));
-  if(!silent){
-    const currentNum = document.getElementById('piNumber').value.trim();
-    if(!editingId && (!currentNum || currentNum.startsWith('PI-'))){
-      document.getElementById('piNumber').value = await nextPiNumber(key);
-    }
+  if(!editingId){
+    document.getElementById('piNumberDisplay').placeholder = 'Assigned automatically when saved';
   }
   updateSummary();
 }
@@ -244,14 +242,15 @@ async function loadForEdit(id){
   document.getElementById('pageTitle').textContent = 'Edit Proforma Invoice';
   document.getElementById('submitBtn').textContent = 'Save changes →';
   document.getElementById('editHint').style.display = 'block';
-  pickCompany(r.company, true);
+  pickCompany(r.company);
   document.getElementById('buyerName').value = r.buyerName||'';
   document.getElementById('buyerContact').value = r.buyerContact||'';
   document.getElementById('buyerPhone').value = r.buyerPhone||'';
   document.getElementById('buyerEmail').value = r.buyerEmail||'';
   document.getElementById('buyerGST').value = r.buyerGST||'';
   document.getElementById('buyerAddress').value = r.buyerAddress||'';
-  document.getElementById('piNumber').value = r.piNumber||'';
+  editingPiNumber = r.piNumber;
+  document.getElementById('piNumberDisplay').value = r.piNumber||'';
   document.getElementById('refPO').value = r.refPO||'';
   document.getElementById('piDate').value = r.piDate||'';
   document.getElementById('validUntil').value = r.validUntil||'';
@@ -285,7 +284,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     buyerEmail: document.getElementById('buyerEmail').value.trim(),
     buyerGST: document.getElementById('buyerGST').value.trim(),
     buyerAddress: document.getElementById('buyerAddress').value.trim(),
-    piNumber: document.getElementById('piNumber').value.trim() || await nextPiNumber(selectedCompany),
+    piNumber: editingId ? editingPiNumber : undefined,
     refPO: document.getElementById('refPO').value.trim(),
     piDate: document.getElementById('piDate').value,
     validUntil: document.getElementById('validUntil').value,

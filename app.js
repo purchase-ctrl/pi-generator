@@ -174,7 +174,6 @@ function rowToRecord(row){
 function recordToRow(r){
   const row = {
     company: r.company,
-    pi_number: r.piNumber,
     ref_po: r.refPO || null,
     buyer_name: r.buyerName,
     buyer_contact: r.buyerContact || null,
@@ -194,7 +193,12 @@ function recordToRow(r){
     advance_total: r.advanceTotal, balance_due: r.balanceDue,
     created_by: r.createdBy
   };
-  if(r.id) row.id = r.id;
+  if(r.id){
+    row.id = r.id;
+    row.pi_number = r.piNumber; // editing: keep the number it already has
+  }
+  // brand-new record: pi_number is intentionally omitted — the database
+  // trigger assigns it atomically, so it can never collide or be typo'd.
   return row;
 }
 
@@ -245,11 +249,4 @@ async function upsertRecord(record){
 async function deleteRecord(id){
   const { error } = await sb.from('pis').delete().eq('id', id);
   if(error){ alert('Delete failed: ' + error.message); }
-}
-async function nextPiNumber(companyKey){
-  const co = COMPANIES[companyKey];
-  const year = new Date().getFullYear();
-  const { count } = await sb.from('pis').select('id', {count:'exact', head:true}).eq('company', companyKey);
-  const n = (count||0) + 1;
-  return `PI-${co.prefix}-${year}-${String(n).padStart(3,'0')}`;
 }
