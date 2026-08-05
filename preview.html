@@ -74,6 +74,13 @@ function renderInvoice(r){
         <div><h2>${co.label}</h2><p>${co.address}</p></div>
       </div>`;
     footHtml = `<img class="lh-band footer" src="images/cosmetic-footer.jpg" alt="Sunshine Cosmetic Pvt. Ltd. footer">`;
+  } else if(r.company === 'dyana'){
+    headHtml = `
+      <img class="lh-band header" src="images/dyana-header.jpg" alt="Dyana International letterhead">
+      <div class="co-id">
+        <h2>${co.label}</h2><p>${co.address}</p>
+      </div>`;
+    footHtml = `<img class="lh-band footer" src="images/dyana-footer.jpg" alt="Dyana International footer">`;
   } else {
     headHtml = `
       <img class="lh-band header" src="images/industries-header.jpg" alt="Sunshine Industries letterhead">

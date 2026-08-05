@@ -76,7 +76,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--coral);}
 textarea{resize:vertical;min-height:56px;}
 
 /* company picker */
-.company-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.company-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .company-card{
   border:2px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff;
   text-align:left;
@@ -140,6 +140,11 @@ textarea{resize:vertical;min-height:56px;}
 .paper[data-theme="industries"] .co-id h2{font-family:'Fraunces';font-size:1.3rem;font-weight:600;margin:0 0 2px;color:var(--teal);}
 .paper[data-theme="industries"] .co-id p{margin:0;font-size:.8rem;color:var(--muted);}
 
+/* dyana: company name/address sits left-aligned under the badge+logo artwork */
+.paper[data-theme="dyana"] .co-id{padding:16px 40px 4px;}
+.paper[data-theme="dyana"] .co-id h2{font-family:'Fraunces';font-size:1.3rem;font-weight:600;margin:0 0 2px;color:var(--teal);}
+.paper[data-theme="dyana"] .co-id p{margin:0;font-size:.8rem;color:var(--muted);}
+
 /* --- shared invoice body (both themes) --- */
 .title-row{padding:12px 40px 16px;}
 .title-row h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:600;color:var(--teal);margin:0;}
@@ -184,6 +189,7 @@ table.log tbody tr:hover{background:#FFF7F1;}
 .tag{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;}
 .tag.cosmetic{background:#FCE7F1;color:#BE185D;}
 .tag.industries{background:#EDE3F0;color:#6E2C5C;}
+.tag.dyana{background:#FAF0DC;color:#92710F;}
 .log-actions{display:flex;gap:8px;}
 .log-actions a,.log-actions button{
   font-size:.75rem;font-weight:600;padding:6px 11px;border-radius:6px;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--teal-dim);
@@ -229,6 +235,7 @@ table.log tbody tr:hover{background:#FFF7F1;}
      These heights are sized to each company's actual letterhead artwork. */
   .paper[data-theme="cosmetic"] .paper-body{padding-top:56mm;padding-bottom:36mm;}
   .paper[data-theme="industries"] .paper-body{padding-top:74mm;padding-bottom:54mm;}
+  .paper[data-theme="dyana"] .paper-body{padding-top:52mm;padding-bottom:24mm;}
 
   .co-id{padding-top:8px !important;padding-bottom:2px !important;}
   .co-id p{max-width:none;}

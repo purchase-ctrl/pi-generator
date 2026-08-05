@@ -20,6 +20,16 @@ const COMPANIES = {
     email: 'marketing@sunshineind.in',
     website: 'www.sunshineind.in',
     tagline: 'Leading Private Label Cosmetics Manufacturers, Committed To Quality, Committed To You'
+  },
+  dyana: {
+    key: 'dyana',
+    label: 'Dyana International',
+    short: 'Dyana',
+    prefix: 'DI',
+    address: 'B-46/4, Wazirpur Industrial Area, Delhi-110052, (India)',
+    phone: '011-27375114',
+    email: 'dyanaint@gmail.com',
+    website: 'www.dyanainternational.com'
   }
 };
 
