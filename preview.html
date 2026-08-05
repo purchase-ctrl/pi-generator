@@ -130,6 +130,15 @@ function renderInvoice(r){
         <div class="tline" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);"><span>Advance required</span><b>${r.currency}${fmtMoney(r.advanceWithGST)}</b></div>` : ''}
       </div>
     </div>
+    <div class="notes-wrap" style="padding-bottom:12px;">
+      <div class="k">Bank Details</div>
+      <div style="font-size:.83rem;color:var(--ink);line-height:1.7;">
+        <b>${escHtml(co.bank.bankName)}</b><br>
+        A/c holder name: ${escHtml(co.bank.accountHolder)}<br>
+        A/c number: ${escHtml(co.bank.accountNumber)} &nbsp;·&nbsp; IFSC: ${escHtml(co.bank.ifsc)}<br>
+        Branch: ${escHtml(co.bank.branch)}
+      </div>
+    </div>
     <div class="notes-wrap">
       <div class="k">Terms &amp; Conditions</div>
       <p>${escHtml(r.notes)}</p>

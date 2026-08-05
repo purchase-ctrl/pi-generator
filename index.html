@@ -50,6 +50,10 @@
             <small>Wazirpur, Delhi</small>
           </button>
         </div>
+        <div id="bankPreview" style="display:none;margin-top:12px;padding:12px 14px;background:#F3EFE7;border:1px solid var(--line);border-radius:8px;font-size:.78rem;color:var(--muted);">
+          <div style="font-weight:700;color:var(--teal-dim);margin-bottom:6px;">Bank details for this PI (fixed, not editable)</div>
+          <div id="bankPreviewBody"></div>
+        </div>
       </div>
 
       <div class="section">
@@ -185,6 +189,16 @@ function pickCompany(key){
   document.querySelectorAll('.company-card').forEach(c=>c.classList.toggle('selected', c.dataset.company===key));
   if(!editingId){
     document.getElementById('piNumberDisplay').placeholder = 'Assigned automatically when saved';
+  }
+  const bank = COMPANIES[key].bank;
+  const box = document.getElementById('bankPreview');
+  if(bank){
+    document.getElementById('bankPreviewBody').innerHTML =
+      `<b>${escHtml(bank.bankName)}</b> · A/c holder: ${escHtml(bank.accountHolder)}<br>
+       A/c no: ${escHtml(bank.accountNumber)} · IFSC: ${escHtml(bank.ifsc)} · ${escHtml(bank.branch)}`;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
   }
   updateSummary();
 }

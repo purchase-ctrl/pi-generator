@@ -8,7 +8,14 @@ const COMPANIES = {
     prefix: 'SC',
     address: 'Plot No. 21, Sector-53, Phase V, HSIIDC Industrial Area, Kundli, Sonepat - 131028.',
     phone: '+91-9810062307',
-    email: 'sunshinecosmeticspvtltd@gmail.com'
+    email: 'sunshinecosmeticspvtltd@gmail.com',
+    bank: {
+      bankName: 'ICICI Bank',
+      accountHolder: 'Sunshine Cosmetics Pvt. Ltd.',
+      accountNumber: '03305006575',
+      ifsc: 'ICIC0000331',
+      branch: 'Ashok Vihar Phase 2, New Delhi'
+    }
   },
   industries: {
     key: 'industries',
@@ -19,7 +26,14 @@ const COMPANIES = {
     phone: '+91-9212284070 / 011-27375114',
     email: 'marketing@sunshineind.in',
     website: 'www.sunshineind.in',
-    tagline: 'Leading Private Label Cosmetics Manufacturers, Committed To Quality, Committed To You'
+    tagline: 'Leading Private Label Cosmetics Manufacturers, Committed To Quality, Committed To You',
+    bank: {
+      bankName: 'Kotak Mahindra Bank Ltd.',
+      accountHolder: 'Sunshine Industries',
+      accountNumber: '1213262636',
+      ifsc: 'KKBK0000215',
+      branch: 'Ashok Vihar Phase 2, New Delhi'
+    }
   },
   dyana: {
     key: 'dyana',
@@ -29,7 +43,14 @@ const COMPANIES = {
     address: 'B-46/4, Wazirpur Industrial Area, Delhi-110052, (India)',
     phone: '011-27375114',
     email: 'dyanaint@gmail.com',
-    website: 'www.dyanainternational.com'
+    website: 'www.dyanainternational.com',
+    bank: {
+      bankName: 'Kotak Mahindra Bank Ltd.',
+      accountHolder: 'Dyana International Beauty Products',
+      accountNumber: '3511579867',
+      ifsc: 'KKBK0000215',
+      branch: 'Ashok Vihar, Delhi'
+    }
   }
 };
 
