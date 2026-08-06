@@ -68,6 +68,7 @@
           <div class="field"><label>GSTIN</label><input id="buyerGST" placeholder="22AAAAA0000A1Z5" style="text-transform:uppercase;"></div>
         </div>
         <div class="field"><label>Billing address</label><textarea id="buyerAddress" placeholder="Buyer's billing address"></textarea></div>
+        <div class="field"><label>Additional details (optional)</label><textarea id="buyerOther" placeholder="Anything else worth noting about this buyer or order"></textarea></div>
       </div>
 
       <div class="section">
@@ -146,12 +147,12 @@ let currentUserName = '';
 let currentUserId = null;
 let isCurrentUserAdmin = false;
 
-function newItem(product="", desc="", qty=1, price=0, advancePct=0, advanceGST="without"){
-  return {id: idSeed++, product, desc, qty, price, advancePct, advanceGST};
+function newItem(product="", desc="", qty=1, unit="Pcs", price=0, advancePct=0, advanceGST="without"){
+  return {id: idSeed++, product, desc, qty, unit, price, advancePct, advanceGST};
 }
 
-function addItem(product,desc,qty,price,advancePct,advanceGST){
-  items.push(newItem(product,desc,qty,price,advancePct,advanceGST));
+function addItem(product,desc,qty,unit,price,advancePct,advanceGST){
+  items.push(newItem(product,desc,qty,unit,price,advancePct,advanceGST));
   renderItemRows();
   updateSummary();
 }
@@ -160,6 +161,7 @@ function removeItem(id){
   renderItemRows();
   updateSummary();
 }
+const UNITS = ['Kg','Gm','Ml','L','Pcs'];
 function renderItemRows(){
   document.getElementById('itemRows').innerHTML = items.map(i=>`
     <div class="item-card">
@@ -170,6 +172,11 @@ function renderItemRows(){
       </div>
       <div class="item-card-row2">
         <div><label>Quantity</label><input type="number" min="0" value="${i.qty}" oninput="items.find(x=>x.id===${i.id}).qty=+this.value||0; updateSummary();"></div>
+        <div><label>Unit</label>
+          <select onchange="items.find(x=>x.id===${i.id}).unit=this.value; updateSummary();">
+            ${UNITS.map(u=>`<option value="${u}" ${i.unit===u?'selected':''}>${u}</option>`).join('')}
+          </select>
+        </div>
         <div><label>Price</label><input type="number" min="0" step="0.01" value="${i.price}" oninput="items.find(x=>x.id===${i.id}).price=+this.value||0; updateSummary();"></div>
         <div><label>Advance % required</label><input type="number" min="0" max="100" value="${i.advancePct}" oninput="items.find(x=>x.id===${i.id}).advancePct=+this.value||0; updateSummary();"></div>
         <div><label>Advance</label>
@@ -263,6 +270,7 @@ async function loadForEdit(id){
   document.getElementById('buyerEmail').value = r.buyerEmail||'';
   document.getElementById('buyerGST').value = r.buyerGST||'';
   document.getElementById('buyerAddress').value = r.buyerAddress||'';
+  document.getElementById('buyerOther').value = r.buyerOther||'';
   editingPiNumber = r.piNumber;
   document.getElementById('piNumberDisplay').value = r.piNumber||'';
   document.getElementById('refPO').value = r.refPO||'';
@@ -272,7 +280,7 @@ async function loadForEdit(id){
   document.getElementById('taxPct').value = r.taxPct||18;
   document.getElementById('tcVersion').value = r.tcVersion||'';
   document.getElementById('notes').value = r.notes||'';
-  items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.price, i.advancePct, i.advanceGST));
+  items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.unit, i.price, i.advancePct, i.advanceGST));
   renderItemRows();
   updateSummary();
 }
@@ -298,6 +306,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     buyerEmail: document.getElementById('buyerEmail').value.trim(),
     buyerGST: document.getElementById('buyerGST').value.trim(),
     buyerAddress: document.getElementById('buyerAddress').value.trim(),
+    buyerOther: document.getElementById('buyerOther').value.trim(),
     piNumber: editingId ? editingPiNumber : undefined,
     refPO: document.getElementById('refPO').value.trim(),
     piDate: document.getElementById('piDate').value,
@@ -307,7 +316,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     taxPct,
     notes: document.getElementById('notes').value.trim(),
     tcVersion: document.getElementById('tcVersion').value,
-    items: items.map(({product,desc,qty,price,advancePct,advanceGST})=>({product,desc,qty,price,advancePct,advanceGST})),
+    items: items.map(({product,desc,qty,unit,price,advancePct,advanceGST})=>({product,desc,qty,unit,price,advancePct,advanceGST})),
     subtotal: totals.subtotal, tax: totals.tax, grandTotal: totals.grandTotal,
     advanceWithoutGST: totals.advanceWithoutGST, advanceWithGST: totals.advanceWithGST,
     advanceTotal: totals.advanceTotal, balanceDue: totals.balanceDue

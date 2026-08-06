@@ -53,16 +53,22 @@ function renderInvoice(r){
 
   const itemRows = r.items.map(i=>{
     const amt = (i.qty||0)*(i.price||0);
-    const advLabel = (i.advancePct||0) > 0 ? `${i.advancePct}%` : '—';
     return `<tr>
       <td>${escHtml(i.product)||'—'}</td>
       <td>${escHtml(i.desc)||'—'}</td>
-      <td>${i.qty||0}</td>
+      <td>${i.qty||0}${i.unit ? ' '+escHtml(i.unit) : ''}</td>
       <td>${r.currency}${fmtMoney(i.price)}</td>
-      <td>${advLabel}</td>
       <td>${r.currency}${fmtMoney(amt)}</td>
     </tr>`;
   }).join('');
+
+  /* If every item contributing to a given advance bucket shares the same
+     percentage, show it in the totals label; otherwise leave it unlabeled
+     rather than showing a misleading single number. */
+  function advancePctLabel(gstType){
+    const pcts = [...new Set(r.items.filter(i => (i.advancePct||0) > 0 && (i.advanceGST||'without') === gstType).map(i=>i.advancePct))];
+    return pcts.length === 1 ? ` (${pcts[0]}%)` : '';
+  }
 
   let headHtml, footHtml;
 
@@ -104,6 +110,7 @@ function renderInvoice(r){
         <div class="line">${escHtml(r.buyerEmail)}</div>
         ${r.buyerAddress ? `<div class="line">${escHtml(r.buyerAddress)}</div>` : ''}
         ${r.buyerGST ? `<div class="line"><b>GSTIN:</b> ${escHtml(r.buyerGST)}</div>` : ''}
+        ${r.buyerOther ? `<div class="line">${escHtml(r.buyerOther)}</div>` : ''}
       </div>
       <div class="meta-col">
         <div class="k">Invoice details</div>
@@ -115,7 +122,7 @@ function renderInvoice(r){
     </div>
     <div class="items-wrap">
       <table class="items">
-        <thead><tr><th>Product</th><th>Description</th><th>Qty</th><th>Price</th><th>Advance</th><th>Amount</th></tr></thead>
+        <thead><tr><th>Product</th><th>Description</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead>
         <tbody>${itemRows}</tbody>
       </table>
     </div>
@@ -123,11 +130,11 @@ function renderInvoice(r){
       <div class="totals">
         <div class="tline"><span>Subtotal</span><b>${r.currency}${fmtMoney(r.subtotal)}</b></div>
         ${(r.advanceWithoutGST||0) > 0 ? `
-        <div class="tline"><span>Advance required</span><b>${r.currency}${fmtMoney(r.advanceWithoutGST)}</b></div>` : ''}
+        <div class="tline"><span>Advance required${advancePctLabel('without')}</span><b>${r.currency}${fmtMoney(r.advanceWithoutGST)}</b></div>` : ''}
         <div class="tline"><span>Tax (${r.taxPct}%)</span><b>${r.currency}${fmtMoney(r.tax)}</b></div>
         <div class="grand"><span>Grand total</span><span>${r.currency}${fmtMoney(r.grandTotal)}</span></div>
         ${(r.advanceWithGST||0) > 0 ? `
-        <div class="tline" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);"><span>Advance required</span><b>${r.currency}${fmtMoney(r.advanceWithGST)}</b></div>` : ''}
+        <div class="tline" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);"><span>Advance required${advancePctLabel('with')}</span><b>${r.currency}${fmtMoney(r.advanceWithGST)}</b></div>` : ''}
       </div>
     </div>
     <div class="notes-wrap" style="padding-bottom:12px;">
