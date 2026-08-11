@@ -120,6 +120,11 @@ function computeTotals(items, taxPct){
 function fmtMoney(n){
   return (Number(n)||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+/* Same as fmtMoney but keeps up to 4 decimal places — used for per-unit
+   price, so a precise rate like 0.295 isn't silently rounded away. */
+function fmtPrice(n){
+  return (Number(n)||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:4});
+}
 function fmtDate(iso){
   if(!iso) return '—';
   const d = new Date(iso+'T00:00:00');

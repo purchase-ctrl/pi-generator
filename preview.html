@@ -57,7 +57,7 @@ function renderInvoice(r){
       <td>${escHtml(i.product)||'—'}</td>
       <td>${escHtml(i.desc)||'—'}</td>
       <td>${i.qty||0}${i.unit ? ' '+escHtml(i.unit) : ''}</td>
-      <td>${r.currency}${fmtMoney(i.price)}</td>
+      <td>${r.currency}${fmtPrice(i.price)}</td>
       <td>${r.currency}${fmtMoney(amt)}</td>
     </tr>`;
   }).join('');

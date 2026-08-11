@@ -177,7 +177,7 @@ function renderItemRows(){
             ${UNITS.map(u=>`<option value="${u}" ${i.unit===u?'selected':''}>${u}</option>`).join('')}
           </select>
         </div>
-        <div><label>Price</label><input type="number" min="0" step="0.01" value="${i.price}" oninput="items.find(x=>x.id===${i.id}).price=+this.value||0; updateSummary();"></div>
+        <div><label>Price</label><input type="number" min="0" step="0.0001" value="${i.price}" oninput="items.find(x=>x.id===${i.id}).price=+this.value||0; updateSummary();"></div>
         <div><label>Advance % required</label><input type="number" min="0" max="100" value="${i.advancePct}" oninput="items.find(x=>x.id===${i.id}).advancePct=+this.value||0; updateSummary();"></div>
         <div><label>Advance</label>
           <select onchange="items.find(x=>x.id===${i.id}).advanceGST=this.value; updateSummary();">
