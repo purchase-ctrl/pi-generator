@@ -229,6 +229,13 @@ function updateSummary(){
   document.getElementById('sumAdvGST').textContent = cur + fmtMoney(advanceWithGST);
 }
 
+document.getElementById('piDate').addEventListener('change', function(){
+  if(!this.value) return;
+  const d = new Date(this.value + 'T00:00:00');
+  if(isNaN(d)) return;
+  document.getElementById('validUntil').value = new Date(d.getTime() + 15*86400000).toISOString().slice(0,10);
+});
+
 document.getElementById('taxPct').addEventListener('input', updateSummary);
 document.getElementById('currency').addEventListener('change', updateSummary);
 
@@ -343,12 +350,12 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
 
   const editId = qs('id');
   const today = new Date().toISOString().slice(0,10);
-  const plus30 = new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+  const plus15 = new Date(Date.now()+15*86400000).toISOString().slice(0,10);
   if(editId){
     await loadForEdit(editId);
   } else {
     document.getElementById('piDate').value = today;
-    document.getElementById('validUntil').value = plus30;
+    document.getElementById('validUntil').value = plus15;
     addItem();
   }
 })();
