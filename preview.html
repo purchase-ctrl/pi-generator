@@ -149,6 +149,7 @@ function renderInvoice(r){
     <div class="notes-wrap">
       <div class="k">Terms &amp; Conditions</div>
       <p>${escHtml(r.notes)}</p>
+      <p style="font-style:italic;margin-top:8px;">Note: The quoted rates are applicable as per the current scenario. In case of any unforeseen changes, the prices may be revised accordingly.</p>
       <div class="stamp">✓ Logged by ${escHtml(r.createdBy)} · ${fmtDateTime(r.createdAt)}</div>
     </div>`;
 
