@@ -57,3 +57,10 @@
 @media print{.bom-sheet .bom-add,.bom-sheet .no-print{display:none!important}}
 .bom-t.head input.bi::placeholder{color:#999}
 @media print{.bom-t.head input.bi::placeholder{color:transparent}}
+.sku-wrap{display:flex;align-items:center}
+.sku-wrap input.bi{flex:1;text-align:left}
+.sku-wrap select.unit{width:90px;flex:none;border-left:1px solid #000;border-radius:0;cursor:pointer;text-align:center;font-weight:700;padding:8px 4px}
+.bom-t.head input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.bom-t.head input[type=number]::-webkit-outer-spin-button,.bom-t.head input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#b_usp{font-weight:700;background:#f4f4f4}
+@media print{.sku-wrap select.unit{appearance:none;-webkit-appearance:none;background:transparent!important;border-left-color:#000}#b_usp{background:transparent}}
