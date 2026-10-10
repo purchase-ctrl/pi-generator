@@ -177,6 +177,7 @@ function rowToRecord(row){
     piNumber: row.pi_number,
     refPO: row.ref_po || '',
     buyerName: row.buyer_name,
+    brandName: row.brand_name || '',
     buyerContact: row.buyer_contact || '',
     buyerPhone: row.buyer_phone || '',
     buyerEmail: row.buyer_email || '',
@@ -203,6 +204,7 @@ function recordToRow(r){
     company: r.company,
     ref_po: r.refPO || null,
     buyer_name: r.buyerName,
+    brand_name: r.brandName || null,
     buyer_contact: r.buyerContact || null,
     buyer_phone: r.buyerPhone || null,
     buyer_email: r.buyerEmail || null,
@@ -274,6 +276,8 @@ async function upsertRecord(record){
   if(error){
     if(error.code === '23505'){
       alert('That PI number already exists for this company. Please try saving again.');
+    } else if(/brand_name/.test(error.message || '')){
+      alert('Save failed: the database is missing the brand_name column. Run supabase-add-brand-name.sql in the Supabase SQL Editor, then try again.');
     } else {
       alert('Save failed: ' + error.message);
     }
