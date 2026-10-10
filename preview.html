@@ -16,6 +16,7 @@
   <div class="navlinks">
     <a href="index.html">① New PI</a>
     <a href="log.html">③ Log</a>
+    <a href="bom.html">④ BOM</a>
     <a href="account.html">👤 Account</a>
     <a href="#" onclick="logout(); return false;">Log out</a>
   </div>
@@ -30,6 +31,7 @@
   <div class="paper-actions">
     <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
     <a class="btn btn-outline" id="editLink" href="#">✎ Edit this PI</a>
+    <a class="btn btn-outline" id="bomLink" href="#">▤ Make BOM</a>
     <a class="btn btn-outline" href="log.html">☰ Back to Log</a>
     <a class="btn btn-outline" href="index.html">+ New PI</a>
   </div>
@@ -175,6 +177,7 @@ function renderInvoice(r){
       <a href="log.html" style="color:var(--coral);font-weight:600;">Log</a>.
     </div>`;
     document.getElementById('editLink').style.display = 'none';
+    document.getElementById('bomLink').style.display = 'none';
     return;
   }
   const isAdmin = await getIsAdmin(session.user.id);
@@ -183,6 +186,7 @@ function renderInvoice(r){
   } else {
     document.getElementById('editLink').style.display = 'none';
   }
+  document.getElementById('bomLink').href = 'bom-sheet.html?pi=' + encodeURIComponent(r.id);
   renderInvoice(r);
 })();
 </script>

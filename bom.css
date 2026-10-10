@@ -1,0 +1,57 @@
+/* BOM sheet — mirrors the paper BOM template (black-on-white grid). */
+.bom-bar{max-width:900px;margin:0 auto 14px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.bom-bar .grow{margin-right:auto;color:var(--muted);font-size:.85rem}
+.bom-pick{max-width:900px;margin:0 auto 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.85rem}
+.bom-pick select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit}
+.bom-sheet{max-width:900px;margin:0 auto 40px;background:#fff;color:#000;border:1px solid var(--line);border-radius:6px;padding:26px 30px 30px;font-family:Arial,Helvetica,sans-serif;font-size:13px;overflow-x:auto}
+.bom-dates{display:flex;justify-content:space-between;gap:16px;margin-bottom:6px}
+.bom-dates input{width:150px;border:0;border-bottom:1px solid #bbb;padding:0 4px;font:inherit;background:transparent;color:#000;outline:0}
+.bom-t{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:26px}
+.bom-t th,.bom-t td{border:1px solid #000;padding:0;vertical-align:middle;background:#fff;color:#000;text-align:center}
+.bom-t th{font-weight:700;padding:7px 6px;font-size:13px;font-family:inherit;text-transform:none;letter-spacing:0;color:#000;background:#fff;border:1px solid #000;text-align:center}
+.bom-t td{border:1px solid #000!important}
+.bom-t td.bx,.bom-t th.bx{border:0!important}
+.bom-t.head th{width:25%;padding:12px 6px}
+.bom-t .bi{width:100%;border:0;outline:0;background:transparent;font:inherit;color:#000;padding:8px;resize:none;display:block;min-height:34px;overflow:hidden;text-align:center}
+.bom-t.head .bi{text-align:left}
+.bom-t .bi:focus,.bom-dates input:focus{background:#fff7d6}
+.bom-t .bi[readonly]:focus{background:transparent}
+.bom-t td.bx,.bom-t th.bx{width:34px;border:0;background:transparent}
+.bom-t.items{margin-bottom:10px}
+.bom-t.sign{margin-bottom:0}
+.bom-t.sign th{width:33.33%}
+.bom-t.sign .bi{min-height:40px}
+.bom-add{margin-bottom:18px}
+.bom-special{margin-bottom:28px;display:flex;gap:6px;align-items:flex-start}
+.bom-special b{white-space:nowrap;padding-top:2px}
+.bom-special .bi{border:0;border-bottom:1px solid #bbb;padding:2px;min-height:0;text-align:left;background:transparent;font:inherit;color:#000;width:100%;resize:none;overflow:hidden;outline:0}
+.bom-del{border:0;background:transparent;color:var(--danger);cursor:pointer;font-size:15px}
+@media (max-width:640px){.bom-sheet{padding:16px 12px}.bom-dates{flex-direction:column}}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff!important}
+  .topbar,.page-head,.bom-bar,.bom-pick,.no-print,col.bx-col{display:none!important}
+  .page-wrap{padding:0!important;max-width:none!important;margin:0!important}
+  .bom-sheet{max-width:none;border:0;border-radius:0;padding:0;overflow:visible;margin:0}
+  .bom-t .bi,.bom-dates input,.bom-special .bi{border-color:transparent;background:transparent!important}
+  .bom-dates input{border-bottom-color:transparent}
+  .bom-dates input::-webkit-calendar-picker-indicator{display:none}
+  .bom-dates input.is-empty{color:transparent}
+  .bom-t tr{break-inside:avoid}
+  .bom-t{margin-bottom:14px}
+  .bom-t.head th{padding:7px 6px}
+  .bom-t .bi{padding:5px 8px;min-height:26px}
+  .bom-special{margin-bottom:16px}
+}
+
+/* beat the global table/button styles in style.css */
+.bom-sheet .bom-t thead th,.bom-sheet .bom-t th{font-family:Arial,Helvetica,sans-serif!important;font-size:13px!important;text-transform:none!important;letter-spacing:0!important;color:#000!important;background:#fff!important;border:1px solid #000!important;padding:7px 6px}
+.bom-sheet .bom-t th.bx{border:0!important;background:transparent!important}
+.bom-bar .btn,.bom-add{width:auto!important;display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap;text-decoration:none}
+.bom-add{margin:0 0 18px}
+@media print{
+  .bom-sheet .bom-t.head th{padding:7px 6px}
+  .bom-sheet .bom-t.items thead th{padding:5px 6px}
+}
+.bom-sheet textarea.bi,.bom-sheet input{font-family:Arial,Helvetica,sans-serif!important;font-size:13px!important}
+@media print{.bom-sheet .bom-add,.bom-sheet .no-print{display:none!important}}
