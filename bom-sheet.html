@@ -60,7 +60,23 @@ function rowHTML(r){
 }
 function grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
 function growAll(){ document.querySelectorAll('#sheet textarea').forEach(grow); }
-function hrow(label,id,v){ return `<tr><th scope="row">${label}</th><td>${ta(id,v)}</td></tr>`; }
+function hrow(label,id,v,list){
+  const cell = list && !ro ? `<input class="bi" id="${id}" list="${list}" autocomplete="off" value="${escHtml(v)}" placeholder="Type or pick from the list">` : ta(id,v);
+  return `<tr><th scope="row">${label}</th><td>${cell}</td></tr>`;
+}
+let NAMES = [];
+const uniq = a => [...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y));
+function fillLists(){
+  const co = ($('#b_company')||{value:''}).value.trim().toLowerCase();
+  const br = ($('#b_brand')||{value:''}).value.trim().toLowerCase();
+  const byCo = co ? NAMES.filter(n=>n.company.toLowerCase()===co) : [];
+  const pool = byCo.length ? byCo : NAMES;
+  const byBr = br ? pool.filter(n=>n.brand.toLowerCase()===br) : [];
+  const opt = a => a.map(v=>`<option value="${escHtml(v)}"></option>`).join('');
+  $('#dl_company').innerHTML = opt(uniq(NAMES.map(n=>n.company)));
+  $('#dl_brand').innerHTML = opt(uniq(pool.map(n=>n.brand)));
+  $('#dl_product').innerHTML = opt(uniq((byBr.length?byBr:pool).map(n=>n.product)));
+}
 
 function renderSheet(){
   const d = B;
@@ -70,7 +86,8 @@ function renderSheet(){
       <label>DATE OF RECEIVING- <input type="date" id="b_recv" value="${escHtml(d.recv)}"${ro?' readonly':''}></label>
     </div>
     <table class="bom-t head"><tbody>
-      ${hrow('Company Name','b_company',d.company)}${hrow('Brand name','b_brand',d.brand)}${hrow('Product Name','b_product',d.product)}
+      ${hrow('Company Name','b_company',d.company,'dl_company')}${hrow('Brand name','b_brand',d.brand,'dl_brand')}${hrow('Product Name','b_product',d.product,'dl_product')}
+      <datalist id="dl_company"></datalist><datalist id="dl_brand"></datalist><datalist id="dl_product"></datalist>
       ${hrow('SKU Size','b_sku',d.sku)}${hrow('MRP Rs.','b_mrp',d.mrp)}${hrow('USP Rs.','b_usp',d.usp)}
     </tbody></table>
     <table class="bom-t items"><colgroup><col style="width:27%"><col style="width:26%"><col style="width:21%"><col style="width:26%">${ro?'':'<col class="bx-col" style="width:34px">'}</colgroup>
@@ -80,7 +97,7 @@ function renderSheet(){
     <div class="bom-special"><b>Special Instruction:</b>${ta('b_special',d.special)}</div>
     <table class="bom-t sign"><thead><tr><th>Prepared By</th><th>Checked By</th><th>Approved By</th></tr></thead>
       <tbody><tr><td>${ta('b_prepared',d.prepared)}</td><td>${ta('b_checked',d.checked)}</td><td>${ta('b_approved',d.approved)}</td></tr></tbody></table>`;
-  growAll();
+  growAll(); fillLists();
   document.querySelectorAll('#sheet input[type=date]').forEach(i=>i.classList.toggle('is-empty',!i.value));
 }
 function readSheet(){
@@ -125,6 +142,7 @@ document.addEventListener('click', e=>{
   }
 });
 document.addEventListener('input', e=>{
+  if(e.target.matches('#b_company,#b_brand')) fillLists();
   if(e.target.matches('#sheet textarea')) grow(e.target);
   if(e.target.matches('#sheet input[type=date]')) e.target.classList.toggle('is-empty',!e.target.value);
   if(e.target.closest('#sheet')){ dirty = true; setStatus(''); }
@@ -166,6 +184,7 @@ document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='
   }
   if(ro){ $('#saveBtn').style.display='none'; }
   renderSheet();
+  if(!ro){ NAMES = await getNameSuggestions(); fillLists(); }
   if(qs('print')==='1') setTimeout(doPrint, 300);
 })();
 </script>

@@ -60,3 +60,20 @@ async function deleteBom(id){
   if(error){ alert('Delete failed: ' + error.message); return false; }
   return true;
 }
+
+/* Names used on earlier PIs, for the BOM drop-downs.
+   Uses get_pi_names() (whole team). If that isn't installed yet, falls back to your own PIs. */
+async function getNameSuggestions(){
+  let rows = [];
+  const r = await sb.rpc('get_pi_names');
+  if(!r.error && r.data){
+    rows = r.data.map(x => ({ company: x.buyer_name, brand: x.brand_name, product: x.product }));
+  } else {
+    const q = await sb.from('pis').select('buyer_name,brand_name,items');
+    ((q && q.data) || []).forEach(p => {
+      const items = (p.items || []).filter(i => i.product);
+      (items.length ? items : [{product:''}]).forEach(i => rows.push({ company: p.buyer_name, brand: p.brand_name || '', product: i.product }));
+    });
+  }
+  return rows.map(x => ({ company:(x.company||'').trim(), brand:(x.brand||'').trim(), product:(x.product||'').trim() })).filter(x => x.company);
+}
