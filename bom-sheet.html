@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>BOM — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="bom.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html">③ Log</a>
+    <a href="bom.html" class="active">④ BOM</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2>④ Bill of Materials</h2>
+    <p id="headNote">Fill in the sheet below, save it, then print or save as PDF.</p>
+  </div>
+
+  <div class="bom-pick no-print" id="pickBar" style="display:none">
+    <b>From PI <span id="pickPi"></span></b>
+    <label>Product: <select id="pickItem"></select></label>
+    <span style="color:var(--muted)">Choosing a product fills the product name.</span>
+  </div>
+
+  <div class="bom-bar no-print">
+    <span class="grow" id="status"></span>
+    <button class="btn btn-primary" id="saveBtn" type="button">Save BOM</button>
+    <button class="btn btn-outline" id="printBtn" type="button">🖨 Print / Save PDF</button>
+    <a class="btn btn-outline" href="bom.html">☰ BOM Log</a>
+  </div>
+
+  <div class="bom-sheet" id="sheet">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script src="bom-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let B = null, ro = false, session = null, dirty = false;
+
+function ta(id, v){ return `<textarea class="bi" id="${id}" rows="1"${ro?' readonly':''}>${escHtml(v)}</textarea>`; }
+function rowHTML(r){
+  const f = (k,v) => `<td><textarea class="bi" data-f="${k}" rows="1"${ro?' readonly':''}>${escHtml(v)}</textarea></td>`;
+  return `<tr>${f('item',r.item)}${f('desc',r.desc)}${f('qty',r.qty)}${f('art',r.art)}${ro?'':`<td class="bx no-print"><button type="button" class="bom-del" data-act="rm" title="Remove row" aria-label="Remove row">✕</button></td>`}</tr>`;
+}
+function grow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+function growAll(){ document.querySelectorAll('#sheet textarea').forEach(grow); }
+function hrow(label,id,v){ return `<tr><th scope="row">${label}</th><td>${ta(id,v)}</td></tr>`; }
+
+function renderSheet(){
+  const d = B;
+  $('#sheet').innerHTML = `
+    <div class="bom-dates">
+      <label>DATE OF CREATION - <input type="date" id="b_created" value="${escHtml(d.created)}"${ro?' readonly':''}></label>
+      <label>DATE OF RECEIVING- <input type="date" id="b_recv" value="${escHtml(d.recv)}"${ro?' readonly':''}></label>
+    </div>
+    <table class="bom-t head"><tbody>
+      ${hrow('Company Name','b_company',d.company)}${hrow('Brand name','b_brand',d.brand)}${hrow('Product Name','b_product',d.product)}
+      ${hrow('SKU Size','b_sku',d.sku)}${hrow('MRP Rs.','b_mrp',d.mrp)}${hrow('USP Rs.','b_usp',d.usp)}
+    </tbody></table>
+    <table class="bom-t items"><colgroup><col style="width:27%"><col style="width:26%"><col style="width:21%"><col style="width:26%">${ro?'':'<col class="bx-col" style="width:34px">'}</colgroup>
+      <thead><tr><th>Item Name</th><th>Description</th><th>Qty/Case</th><th>APPROVED ARTWORK</th>${ro?'':'<th class="bx no-print"></th>'}</tr></thead>
+      <tbody id="rows">${d.rows.map(rowHTML).join('')}</tbody></table>
+    ${ro?'':'<button type="button" class="btn btn-outline bom-add no-print" data-act="add">+ Add row</button>'}
+    <div class="bom-special"><b>Special Instruction:</b>${ta('b_special',d.special)}</div>
+    <table class="bom-t sign"><thead><tr><th>Prepared By</th><th>Checked By</th><th>Approved By</th></tr></thead>
+      <tbody><tr><td>${ta('b_prepared',d.prepared)}</td><td>${ta('b_checked',d.checked)}</td><td>${ta('b_approved',d.approved)}</td></tr></tbody></table>`;
+  growAll();
+  document.querySelectorAll('#sheet input[type=date]').forEach(i=>i.classList.toggle('is-empty',!i.value));
+}
+function readSheet(){
+  const g = id => $('#'+id).value.trim();
+  return Object.assign({}, B, {
+    created:g('b_created'), recv:g('b_recv'), company:g('b_company'), brand:g('b_brand'), product:g('b_product'),
+    sku:g('b_sku'), mrp:g('b_mrp'), usp:g('b_usp'),
+    rows:[...document.querySelectorAll('#rows tr')].map(tr=>{const v=k=>tr.querySelector(`[data-f="${k}"]`).value.trim();return {item:v('item'),desc:v('desc'),qty:v('qty'),art:v('art')};}),
+    special:g('b_special'), prepared:g('b_prepared'), checked:g('b_checked'), approved:g('b_approved')
+  });
+}
+function today(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function blank(){
+  return { id:null, userId:null, createdBy:getDisplayName(session), piId:null, piNumber:'', created:today(), recv:'', company:'', brand:'', product:'', sku:'', mrp:'', usp:'',
+    rows:BOM_DEFAULT_ROWS.map(n=>({item:n,desc:'',qty:'',art:''})), special:'Wrap all Outer Shipper Box', prepared:getDisplayName(session), checked:'', approved:'' };
+}
+function setStatus(t){ $('#status').textContent = t; }
+
+async function save(){
+  if(ro) return;
+  const rec = readSheet();
+  if(!rec.id) rec.createdBy = getDisplayName(session);
+  const btn = $('#saveBtn'); btn.disabled = true; setStatus('Saving…');
+  const saved = await upsertBom(rec);
+  btn.disabled = false;
+  if(!saved){ setStatus('Not saved'); return; }
+  const isNew = !B.id;
+  B = saved; dirty = false;
+  setStatus('Saved ✓');
+  if(isNew) history.replaceState(null,'','bom-sheet.html?id='+encodeURIComponent(saved.id));
+}
+function doPrint(){ document.title = 'BOM - ' + ($('#b_product').value.trim() || 'Product'); window.print(); }
+window.addEventListener('afterprint', ()=>{ document.title = 'BOM — Sunshine PI Desk'; });
+
+document.addEventListener('click', e=>{
+  const a = e.target.closest('[data-act]'); if(!a) return;
+  if(a.dataset.act==='add'){
+    B = readSheet(); B.rows.push({item:'',desc:'',qty:'',art:''}); renderSheet(); dirty = true;
+    const last = document.querySelector('#rows tr:last-child textarea'); if(last) last.focus();
+  } else if(a.dataset.act==='rm'){
+    a.closest('tr').remove(); dirty = true;
+  }
+});
+document.addEventListener('input', e=>{
+  if(e.target.matches('#sheet textarea')) grow(e.target);
+  if(e.target.matches('#sheet input[type=date]')) e.target.classList.toggle('is-empty',!e.target.value);
+  if(e.target.closest('#sheet')){ dirty = true; setStatus(''); }
+});
+window.addEventListener('beforeprint', growAll);
+window.addEventListener('beforeunload', e=>{ if(dirty && !ro){ e.preventDefault(); e.returnValue=''; } });
+$('#saveBtn').addEventListener('click', save);
+$('#printBtn').addEventListener('click', doPrint);
+document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='s'){ e.preventDefault(); save(); } });
+
+(async function init(){
+  session = await requireAuth();
+  if(!session) return;
+  const id = qs('id'), piId = qs('pi');
+  if(id){
+    const rec = await getBom(id);
+    if(!rec){ $('#sheet').innerHTML = `<div style="padding:50px;text-align:center;color:#555">No BOM found with that link. <a href="bom.html" style="color:var(--coral);font-weight:600">Open the BOM log</a>.</div>`; $('.bom-bar').style.display='none'; return; }
+    const admin = await getIsAdmin(session.user.id);
+    ro = !(rec.userId === session.user.id || admin);
+    B = rec;
+    $('#headNote').textContent = ro ? 'View only — you can print this BOM but not change it.' : `Created by ${rec.createdBy}${rec.piNumber ? ' · from '+rec.piNumber : ''}.`;
+  } else {
+    B = blank();
+    if(piId){
+      const pi = await getRecord(piId);
+      if(pi){
+        B.piId = pi.id; B.piNumber = pi.piNumber; B.company = pi.buyerName || ''; B.brand = pi.brandName || '';
+        const items = (pi.items||[]).filter(i=>i.product);
+        if(items.length){
+          B.product = items[0].product;
+          $('#pickBar').style.display = 'flex'; $('#pickPi').textContent = pi.piNumber;
+          const sel = $('#pickItem');
+          sel.innerHTML = items.map((i,k)=>`<option value="${k}">${escHtml(i.product)}</option>`).join('');
+          sel.addEventListener('change', ()=>{ $('#b_product').value = items[sel.value].product; dirty = true; });
+        }
+        $('#headNote').textContent = `New BOM prefilled from ${pi.piNumber}. Check the details, fill the packaging rows, then save.`;
+      }
+    }
+  }
+  if(ro){ $('#saveBtn').style.display='none'; }
+  renderSheet();
+  if(qs('print')==='1') setTimeout(doPrint, 300);
+})();
+</script>
+</body>
+</html>

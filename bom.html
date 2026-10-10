@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>BOM Log — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html">③ Log</a>
+    <a href="bom.html" class="active">④ BOM</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2>④ BOM Log</h2>
+    <p>Every Bill of Materials the team has made. Opening, editing or deleting one is limited to whoever created it. <span id="adminNote" style="display:none;color:var(--coral);font-weight:600;">You're an admin — you can open, edit and delete any BOM.</span></p>
+  </div>
+
+  <div class="log-toolbar">
+    <input id="search" placeholder="Search product, brand, company or PI number…">
+    <span class="log-count" id="count"></span>
+    <a class="btn btn-primary" href="bom-sheet.html">+ New BOM</a>
+  </div>
+
+  <div class="log-table-wrap" id="tableWrap">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script src="bom-data.js"></script>
+<script>
+let all = [], uid = null, isAdmin = false;
+
+function render(filter){
+  const f = (filter||'').toLowerCase();
+  const rows = all.filter(r => !f || [r.product,r.brand,r.company,r.piNumber].some(v => (v||'').toLowerCase().includes(f)));
+  document.getElementById('count').textContent = `${rows.length} of ${all.length} BOM${all.length===1?'':'s'}`;
+  const wrap = document.getElementById('tableWrap');
+  if(!all.length){ wrap.innerHTML = `<div class="empty-state">No BOMs yet. <a href="bom-sheet.html">Create the first one →</a> or open a PI in the <a href="log.html">Log</a> and choose BOM.</div>`; return; }
+  if(!rows.length){ wrap.innerHTML = `<div class="empty-state">No matches for "${escHtml(filter)}".</div>`; return; }
+  wrap.innerHTML = `
+    <table class="log">
+      <thead><tr><th>Product</th><th>Brand</th><th>Company</th><th>PI number</th><th>Date</th><th>Created by</th><th></th></tr></thead>
+      <tbody>${rows.map(r=>{
+        const mine = r.userId === uid || isAdmin;
+        return `<tr>
+          <td data-label="Product"><b>${escHtml(r.product)||'—'}</b></td>
+          <td data-label="Brand">${escHtml(r.brand)||'—'}</td>
+          <td data-label="Company">${escHtml(r.company)||'—'}</td>
+          <td data-label="PI number">${escHtml(r.piNumber)||'—'}</td>
+          <td data-label="Date">${r.date ? fmtDate(r.date) : '—'}</td>
+          <td data-label="Created by">${escHtml(r.createdBy)}</td>
+          <td data-label="Actions">${mine ? `<div class="log-actions">
+            <a href="bom-sheet.html?id=${encodeURIComponent(r.id)}">Open</a>
+            <a href="bom-sheet.html?id=${encodeURIComponent(r.id)}&print=1">Print</a>
+            <button class="del" onclick="handleDelete('${r.id}')">Delete</button>
+          </div>` : `<span style="font-size:.75rem;color:var(--muted);">— not yours —</span>`}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>`;
+}
+async function handleDelete(id){
+  const r = all.find(x=>x.id===id);
+  if(!confirm(`Delete the BOM for ${r && r.product ? r.product : 'this product'}? This can't be undone.`)) return;
+  if(await deleteBom(id)){ await load(); render(document.getElementById('search').value); }
+}
+async function load(){
+  const res = await getBomLog();
+  if(res.error){
+    document.getElementById('tableWrap').innerHTML = `<div class="empty-state">Could not load BOMs. If this is the first time, run <b>supabase-add-bom.sql</b> in Supabase.</div>`;
+    return false;
+  }
+  all = res.rows; return true;
+}
+document.getElementById('search').addEventListener('input', e => render(e.target.value));
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  uid = session.user.id;
+  isAdmin = await getIsAdmin(uid);
+  if(isAdmin) document.getElementById('adminNote').style.display = 'inline';
+  if(await load()) render('');
+})();
+</script>
+</body>
+</html>

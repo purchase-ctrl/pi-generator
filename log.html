@@ -16,6 +16,7 @@
   <div class="navlinks">
     <a href="index.html">① New PI</a>
     <a href="log.html" class="active" id="navLog">③ Log</a>
+    <a href="bom.html">④ BOM</a>
     <a href="account.html">👤 Account</a>
     <a href="#" onclick="logout(); return false;">Log out</a>
   </div>
@@ -82,6 +83,7 @@ function render(filter){
               ${mine ? `<div class="log-actions">
                 <a href="preview.html?id=${encodeURIComponent(r.id)}">View</a>
                 <a href="index.html?id=${encodeURIComponent(r.id)}">Edit</a>
+                <a href="bom-sheet.html?pi=${encodeURIComponent(r.id)}">BOM</a>
                 <button class="del" onclick="handleDelete('${r.id}')">Delete</button>
               </div>` : `<span style="font-size:.75rem;color:var(--muted);">— not yours —</span>`}
             </td>
