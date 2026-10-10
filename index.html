@@ -59,6 +59,7 @@
       <div class="section">
         <h3>Buyer</h3>
         <div class="field"><label>Company / name *</label><input id="buyerName" required placeholder="Glamirk"></div>
+        <div class="field"><label>Brand name</label><input id="brandName" placeholder="Brand the products are being made for (optional)"></div>
         <div class="row2">
           <div class="field"><label>Contact person</label><input id="buyerContact" placeholder="Ajay"></div>
           <div class="field"><label>Phone</label><input id="buyerPhone" placeholder="9560762456"></div>
@@ -265,6 +266,7 @@ async function loadForEdit(id){
   document.getElementById('editHint').style.display = 'block';
   pickCompany(r.company);
   document.getElementById('buyerName').value = r.buyerName||'';
+  document.getElementById('brandName').value = r.brandName||'';
   document.getElementById('buyerContact').value = r.buyerContact||'';
   document.getElementById('buyerPhone').value = r.buyerPhone||'';
   document.getElementById('buyerEmail').value = r.buyerEmail||'';
@@ -301,6 +303,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     id: editingId || undefined,
     company: selectedCompany,
     buyerName: document.getElementById('buyerName').value.trim(),
+    brandName: document.getElementById('brandName').value.trim(),
     buyerContact: document.getElementById('buyerContact').value.trim(),
     buyerPhone: document.getElementById('buyerPhone').value.trim(),
     buyerEmail: document.getElementById('buyerEmail').value.trim(),

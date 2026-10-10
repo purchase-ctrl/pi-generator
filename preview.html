@@ -105,6 +105,7 @@ function renderInvoice(r){
       <div class="meta-col">
         <div class="k">Buyer</div>
         <div class="name">${escHtml(r.buyerName)}</div>
+        ${r.brandName ? `<div class="line"><b>Brand:</b> ${escHtml(r.brandName)}</div>` : ''}
         <div class="line">${escHtml(r.buyerContact)}</div>
         <div class="line">${escHtml(r.buyerPhone)}</div>
         <div class="line">${escHtml(r.buyerEmail)}</div>
