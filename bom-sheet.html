@@ -64,6 +64,25 @@ function hrow(label,id,v,list){
   const cell = list && !ro ? `<input class="bi" id="${id}" list="${list}" autocomplete="off" value="${escHtml(v)}" placeholder="Type or pick from the list">` : ta(id,v);
   return `<tr><th scope="row">${label}</th><td>${cell}</td></tr>`;
 }
+function parseSku(v){
+  const m = String(v||'').match(/^\s*([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)/);
+  if(!m) return {n:'', u:'ML'};
+  return {n:m[1], u:/^g/i.test(m[2]) ? 'GM' : 'ML'};
+}
+function fmtNum(x){ return String(Math.round(x*100)/100); }
+function calcUsp(){
+  const mrp = parseFloat(($('#b_mrp')||{}).value), sku = parseFloat(($('#b_sku')||{}).value);
+  const out = (mrp >= 0 && sku > 0) ? fmtNum(mrp/sku) : '';
+  const el = $('#b_usp'); if(el) el.value = out;
+  return out;
+}
+function skuRow(d){
+  const p = parseSku(d.sku);
+  return `<tr><th scope="row">SKU Size</th><td><div class="sku-wrap">
+    <input class="bi" id="b_sku" type="number" min="0" step="any" inputmode="decimal" value="${escHtml(p.n)}"${ro?' readonly':''}>
+    <select id="b_skuu" class="bi unit"${ro?' disabled':''}><option${p.u==='ML'?' selected':''}>ML</option><option${p.u==='GM'?' selected':''}>GM</option></select>
+  </div></td></tr>`;
+}
 let NAMES = [];
 const uniq = a => [...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y));
 function fillLists(){
@@ -88,7 +107,8 @@ function renderSheet(){
     <table class="bom-t head"><tbody>
       ${hrow('Company Name','b_company',d.company,'dl_company')}${hrow('Brand name','b_brand',d.brand,'dl_brand')}${hrow('Product Name','b_product',d.product,'dl_product')}
       <datalist id="dl_company"></datalist><datalist id="dl_brand"></datalist><datalist id="dl_product"></datalist>
-      ${hrow('SKU Size','b_sku',d.sku)}${hrow('MRP Rs.','b_mrp',d.mrp)}${hrow('USP Rs.','b_usp',d.usp)}
+      ${skuRow(d)}<tr><th scope="row">MRP Rs.</th><td><input class="bi" id="b_mrp" type="number" min="0" step="any" inputmode="decimal" value="${escHtml(d.mrp)}"${ro?' readonly':''}></td></tr>
+      <tr><th scope="row">USP Rs.</th><td><input class="bi" id="b_usp" readonly tabindex="-1" value="" title="MRP ÷ SKU size (calculated)"></td></tr>
     </tbody></table>
     <table class="bom-t items"><colgroup><col style="width:27%"><col style="width:26%"><col style="width:21%"><col style="width:26%">${ro?'':'<col class="bx-col" style="width:34px">'}</colgroup>
       <thead><tr><th>Item Name</th><th>Description</th><th>Qty/Case</th><th>APPROVED ARTWORK</th>${ro?'':'<th class="bx no-print"></th>'}</tr></thead>
@@ -97,14 +117,14 @@ function renderSheet(){
     <div class="bom-special"><b>Special Instruction:</b>${ta('b_special',d.special)}</div>
     <table class="bom-t sign"><thead><tr><th>Prepared By</th><th>Checked By</th><th>Approved By</th></tr></thead>
       <tbody><tr><td>${ta('b_prepared',d.prepared)}</td><td>${ta('b_checked',d.checked)}</td><td>${ta('b_approved',d.approved)}</td></tr></tbody></table>`;
-  growAll(); fillLists();
+  growAll(); fillLists(); calcUsp();
   document.querySelectorAll('#sheet input[type=date]').forEach(i=>i.classList.toggle('is-empty',!i.value));
 }
 function readSheet(){
   const g = id => $('#'+id).value.trim();
   return Object.assign({}, B, {
     created:g('b_created'), recv:g('b_recv'), company:g('b_company'), brand:g('b_brand'), product:g('b_product'),
-    sku:g('b_sku'), mrp:g('b_mrp'), usp:g('b_usp'),
+    sku:(g('b_sku') ? g('b_sku')+' '+$('#b_skuu').value : ''), mrp:g('b_mrp'), usp:calcUsp(),
     rows:[...document.querySelectorAll('#rows tr')].map(tr=>{const v=k=>tr.querySelector(`[data-f="${k}"]`).value.trim();return {item:v('item'),desc:v('desc'),qty:v('qty'),art:v('art')};}),
     special:g('b_special'), prepared:g('b_prepared'), checked:g('b_checked'), approved:g('b_approved')
   });
@@ -141,8 +161,10 @@ document.addEventListener('click', e=>{
     a.closest('tr').remove(); dirty = true;
   }
 });
+document.addEventListener('change', e=>{ if(e.target.matches('#b_skuu')){ dirty = true; setStatus(''); } });
 document.addEventListener('input', e=>{
   if(e.target.matches('#b_company,#b_brand')) fillLists();
+  if(e.target.matches('#b_mrp,#b_sku')) calcUsp();
   if(e.target.matches('#sheet textarea')) grow(e.target);
   if(e.target.matches('#sheet input[type=date]')) e.target.classList.toggle('is-empty',!e.target.value);
   if(e.target.closest('#sheet')){ dirty = true; setStatus(''); }
