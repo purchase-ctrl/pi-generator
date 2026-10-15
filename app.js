@@ -58,7 +58,7 @@ const COMPANIES = {
 const TC_VERSIONS = {
   v1: `1. The Prices are for the items as per the sampled quality.
 
-2. Approval charges: Rs. 6000/- per product per variant.
+2. Approval charges: Rs. 7000/- per product per variant.
 
 3. Payment: 50% advance at the time of order confirmation. 50% pre-dispatch.
 
@@ -79,7 +79,7 @@ const TC_VERSIONS = {
 11. Jurisdiction: All disputes are subject to Solan (Himachal Pradesh) jurisdiction only.`,
   v2: `1. The Prices are for the items as per the sampled quality.
 
-2. Approval charges: Rs. 6000/- per product per variant.
+2. Approval charges: Rs. 7000/- per product per variant.
 
 3. Payment: As per mutually agreed terms.
 
