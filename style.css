@@ -118,6 +118,9 @@ textarea{resize:vertical;min-height:56px;}
 
 /* ---------- Invoice paper (preview.html) ---------- */
 .paper-outer{display:flex;justify-content:center;}
+.print-frame{width:100%;border-collapse:collapse;border-spacing:0;}
+.print-frame td{padding:0;border:0;}
+.pf-h,.pf-f{display:none;}
 .paper{width:100%;max-width:780px;background:var(--paper);box-shadow:var(--shadow);overflow:hidden;}
 .paper-actions{max-width:780px;margin:0 auto 16px;display:flex;gap:10px;flex-wrap:wrap;}
 .paper-actions .btn{width:auto;padding:10px 18px;}
@@ -233,9 +236,17 @@ table.log tbody tr:hover{background:#FFF7F1;}
   /* Reserve exactly that much space at the top/bottom of the flowing
      content so it never renders underneath the fixed header/footer.
      These heights are sized to each company's actual letterhead artwork. */
+  /* Reserve room for the fixed letterhead on EVERY printed page. Padding on one
+     block normally applies only at its very first and last page, so long content
+     (like all the Terms & Conditions) slid under the footer and vanished.
+     box-decoration-break:clone repeats the top/bottom padding on each page. */
+  .paper-body{box-decoration-break:clone;-webkit-box-decoration-break:clone;}
   .paper[data-theme="cosmetic"] .paper-body{padding-top:56mm;padding-bottom:36mm;}
   .paper[data-theme="industries"] .paper-body{padding-top:74mm;padding-bottom:54mm;}
   .paper[data-theme="dyana"] .paper-body{padding-top:52mm;padding-bottom:24mm;}
+  .paper-outer{display:block !important;}
+  .paper{overflow:visible !important;}
+  .items tr,.totals,.meta-grid{break-inside:avoid;}
 
   .co-id{padding-top:8px !important;padding-bottom:2px !important;}
   .co-id p{max-width:none;}
