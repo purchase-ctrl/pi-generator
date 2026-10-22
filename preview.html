@@ -188,6 +188,11 @@ function renderInvoice(r){
   }
   document.getElementById('bomLink').href = 'bom-sheet.html?pi=' + encodeURIComponent(r.id);
   renderInvoice(r);
+  /* The browser uses the page title as the default file name when saving as PDF: "PI -005 - Brand name". */
+  const clean = t => String(t||'').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+  const seq = (String(r.piNumber||'').match(/(\d+)\s*$/)||[])[1];   // PI-SI-2026-005 -> 005
+  const nm = [seq ? 'PI -' + seq : clean(r.piNumber), clean(r.brandName) || clean(r.buyerName)].filter(Boolean).join(' - ');
+  if(nm) document.title = nm;
 })();
 </script>
 </body>
