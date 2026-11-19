@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Client Profiles — Sunshine PI Desk</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .cp-form{display:none;margin-bottom:16px}
+  .cp-form.open{display:block}
+  .cp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .cp-sub{display:block;font-size:.74rem;color:var(--muted);margin-top:2px}
+  .log-toolbar .btn,.cp-actions .btn{width:auto !important;display:inline-flex !important;align-items:center;justify-content:center;white-space:nowrap;text-decoration:none}
+  .cp-msg{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brandmark" href="index.html">
+    <div class="sun"></div>
+    <div><h1>Sunshine PI Desk</h1><span>Proforma Invoice Generator</span></div>
+  </a>
+  <div class="navlinks">
+    <a href="index.html">① New PI</a>
+    <a href="log.html">③ Log</a>
+    <a href="bom.html">④ BOM</a>
+    <a href="clients.html" class="active">👥 Clients</a>
+    <a href="account.html">👤 Account</a>
+    <a href="#" onclick="logout(); return false;">Log out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <h2>👥 Client Profiles</h2>
+    <p>Save each client's details once. On a new PI, pick the client and every buyer detail fills in automatically. <span id="adminNote" style="display:none;color:var(--coral);font-weight:600;">You're an admin — you can edit and delete any profile.</span></p>
+  </div>
+
+  <div class="log-toolbar">
+    <input id="search" placeholder="Search client, brand, contact, phone or GSTIN…">
+    <span class="log-count" id="count"></span>
+    <button class="btn btn-outline" type="button" id="importBtn" title="Create profiles from the buyers on PIs you can see">Import from previous PIs</button>
+    <button class="btn btn-primary" type="button" id="newBtn">+ New client</button>
+  </div>
+
+  <form class="section cp-form" id="cpForm" autocomplete="off">
+    <h3 id="cpTitle">New client</h3>
+    <div class="row2">
+      <div class="field"><label>Company / name *</label><input id="f_name" required placeholder="Glamirk"></div>
+      <div class="field"><label>Brand name</label><input id="f_brand" placeholder="Brand the products are made for (optional)"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Contact person</label><input id="f_contact" placeholder="Ajay"></div>
+      <div class="field"><label>Phone</label><input id="f_phone" placeholder="9560762456"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Email</label><input id="f_email" type="email" placeholder="buyer@email.com"></div>
+      <div class="field"><label>GSTIN</label><input id="f_gst" placeholder="22AAAAA0000A1Z5" style="text-transform:uppercase;"></div>
+    </div>
+    <div class="field"><label>Billing address</label><textarea id="f_address" placeholder="Client's billing address"></textarea></div>
+    <div class="field"><label>Additional details (optional)</label><textarea id="f_other" placeholder="Anything else worth noting about this client"></textarea></div>
+    <div class="cp-actions">
+      <button class="btn btn-primary" type="submit" id="saveBtn">Save client</button>
+      <button class="btn btn-outline" type="button" id="cancelBtn">Cancel</button>
+    </div>
+  </form>
+
+  <p class="cp-msg" id="msg"></p>
+  <div class="log-table-wrap" id="tableWrap">Loading…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+<script src="clients-data.js"></script>
+<script>
+let all = [], uid = null, me = '', isAdmin = false, editing = null;
+const $ = id => document.getElementById(id);
+const F = ['name','brand','contact','phone','email','gst','address','other'];
+
+function render(filter){
+  const f = (filter||'').toLowerCase();
+  const rows = all.filter(p => !f || [p.name,p.brand,p.contact,p.phone,p.gst,p.email].some(v => (v||'').toLowerCase().includes(f)));
+  $('count').textContent = `${rows.length} of ${all.length} client${all.length===1?'':'s'}`;
+  const wrap = $('tableWrap');
+  if(!all.length){ wrap.innerHTML = `<div class="empty-state">No client profiles yet. Click <b>+ New client</b>, or <b>Import from previous PIs</b> to create them from the buyers you've already used.</div>`; return; }
+  if(!rows.length){ wrap.innerHTML = `<div class="empty-state">No matches for "${escHtml(filter)}".</div>`; return; }
+  wrap.innerHTML = `
+    <table class="log">
+      <thead><tr><th>Client</th><th>Brand</th><th>Contact</th><th>GSTIN</th><th>Added by</th><th></th></tr></thead>
+      <tbody>${rows.map(p=>{
+        const mine = p.userId === uid || isAdmin;
+        return `<tr>
+          <td data-label="Client"><b>${escHtml(p.name)}</b>${p.address?`<span class="cp-sub">${escHtml(p.address.split('\n')[0])}</span>`:''}</td>
+          <td data-label="Brand">${escHtml(p.brand)||'—'}</td>
+          <td data-label="Contact">${p.contact||p.phone||p.email ? `${escHtml(p.contact)}${p.phone?`<span class="cp-sub">${escHtml(p.phone)}</span>`:''}${p.email?`<span class="cp-sub">${escHtml(p.email)}</span>`:''}` : '—'}</td>
+          <td data-label="GSTIN">${escHtml(p.gst)||'—'}</td>
+          <td data-label="Added by">${escHtml(p.createdBy)}</td>
+          <td data-label="Actions"><div class="log-actions">
+            <a href="index.html?client=${encodeURIComponent(p.id)}">New PI</a>
+            ${mine ? `<button type="button" class="del" style="color:var(--teal)" onclick="startEdit('${p.id}')">Edit</button>
+            <button type="button" class="del" onclick="handleDelete('${p.id}')">Delete</button>` : ''}
+          </div></td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>`;
+}
+function openForm(p){
+  editing = p ? p.id : null;
+  $('cpTitle').textContent = p ? 'Edit client' : 'New client';
+  F.forEach(k => $('f_'+k).value = p ? (p[k]||'') : '');
+  $('cpForm').classList.add('open');
+  $('f_name').focus();
+  $('cpForm').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function closeForm(){ $('cpForm').classList.remove('open'); editing = null; }
+function startEdit(id){ const p = all.find(x=>x.id===id); if(p) openForm(p); }
+function setMsg(t, bad){ $('msg').textContent = t||''; $('msg').style.color = bad ? 'var(--danger)' : 'var(--muted)'; }
+
+async function load(){
+  const res = await getClientProfiles();
+  if(res.error){
+    $('tableWrap').innerHTML = `<div class="empty-state">Could not load client profiles. If this is the first time, run <b>supabase-add-client-profiles.sql</b> in Supabase.</div>`;
+    return false;
+  }
+  all = res.rows; return true;
+}
+async function handleDelete(id){
+  const p = all.find(x=>x.id===id);
+  if(!confirm(`Delete the profile for ${p ? p.name + (p.brand ? ' · ' + p.brand : '') : 'this client'}? PIs already made are not affected.`)) return;
+  const { error } = await deleteClientProfile(id);
+  if(error){ alert('Delete failed: ' + error.message); return; }
+  await load(); render($('search').value);
+}
+
+$('cpForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const p = {}; F.forEach(k => p[k] = $('f_'+k).value.trim());
+  p.gst = p.gst.toUpperCase();
+  if(!p.name){ alert('Please enter the client name.'); return; }
+  const dup = all.find(x => x.id !== editing && cpKey(x.name,x.brand) === cpKey(p.name,p.brand));
+  if(dup){ alert('A profile for this client and brand already exists. Edit that one instead.'); return; }
+  if(editing){ const old = all.find(x=>x.id===editing); p.id = editing; p.userId = old.userId; p.createdBy = old.createdBy; }
+  else p.createdBy = me;
+  $('saveBtn').disabled = true;
+  const r = await saveClientProfile(p);
+  $('saveBtn').disabled = false;
+  if(r.error){
+    alert(cpMissingTable(r.error) ? 'The database has no client profiles table yet. Run supabase-add-client-profiles.sql in Supabase first.'
+      : r.error.code === '23505' ? 'A profile for this client and brand already exists.' : 'Save failed: ' + r.error.message);
+    return;
+  }
+  closeForm(); setMsg(editing ? 'Client updated.' : 'Client saved.');
+  await load(); render($('search').value);
+});
+$('newBtn').addEventListener('click', () => openForm(null));
+$('cancelBtn').addEventListener('click', closeForm);
+$('search').addEventListener('input', e => render(e.target.value));
+
+$('importBtn').addEventListener('click', async () => {
+  if(!confirm('Create client profiles from the buyers on previous PIs you can see (the newest PI for each client + brand is used)? Existing profiles are not changed.')) return;
+  $('importBtn').disabled = true; setMsg('Importing…');
+  const { data, error } = await sb.from('pis').select('buyer_name,brand_name,buyer_contact,buyer_phone,buyer_email,buyer_gst,buyer_address,buyer_other,created_at').order('created_at', {ascending:false});
+  if(error){ setMsg('Could not read previous PIs: ' + error.message, true); $('importBtn').disabled = false; return; }
+  const have = new Set(all.map(p => cpKey(p.name,p.brand)));
+  const add = [];
+  (data||[]).forEach(r => {
+    const name = String(r.buyer_name||'').trim(); if(!name) return;
+    const k = cpKey(name, r.brand_name); if(have.has(k)) return; have.add(k);
+    add.push(cpToRow({ createdBy: me, name, brand:String(r.brand_name||'').trim(), contact:r.buyer_contact, phone:r.buyer_phone,
+      email:r.buyer_email, gst:String(r.buyer_gst||'').toUpperCase(), address:r.buyer_address, other:r.buyer_other }));
+  });
+  if(!add.length){ setMsg('Nothing to import: every buyer on your PIs already has a profile.'); $('importBtn').disabled = false; return; }
+  const ins = await sb.from('client_profiles').insert(add);
+  $('importBtn').disabled = false;
+  if(ins.error){ setMsg(cpMissingTable(ins.error) ? 'Run supabase-add-client-profiles.sql in Supabase first.' : 'Import failed: ' + ins.error.message, true); return; }
+  setMsg(`Imported ${add.length} client profile${add.length===1?'':'s'}.`);
+  await load(); render($('search').value);
+});
+
+(async function init(){
+  const session = await requireAuth();
+  if(!session) return;
+  uid = session.user.id; me = getDisplayName(session);
+  isAdmin = await getIsAdmin(uid);
+  if(isAdmin) $('adminNote').style.display = 'inline';
+  if(await load()) render('');
+})();
+</script>
+</body>
+</html>
