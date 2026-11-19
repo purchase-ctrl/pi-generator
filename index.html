@@ -17,6 +17,7 @@
     <a href="index.html" class="active" id="navNew">① New PI</a>
     <a href="log.html" id="navLog">③ Log</a>
     <a href="bom.html">④ BOM</a>
+    <a href="clients.html">👥 Clients</a>
     <a href="account.html">👤 Account</a>
     <a href="#" onclick="logout(); return false;">Log out</a>
   </div>
@@ -59,6 +60,10 @@
 
       <div class="section">
         <h3>Buyer</h3>
+        <div class="field">
+          <label>Saved client <a href="clients.html" style="font-weight:500;color:var(--coral);margin-left:6px;">manage clients</a></label>
+          <select id="clientPick"><option value="">— Pick a saved client to fill the details below —</option></select>
+        </div>
         <div class="field"><label>Company / name *</label><input id="buyerName" required placeholder="Glamirk"></div>
         <div class="field"><label>Brand name</label><input id="brandName" placeholder="Brand the products are being made for (optional)"></div>
         <div class="row2">
@@ -71,6 +76,9 @@
         </div>
         <div class="field"><label>Billing address</label><textarea id="buyerAddress" placeholder="Buyer's billing address"></textarea></div>
         <div class="field"><label>Additional details (optional)</label><textarea id="buyerOther" placeholder="Anything else worth noting about this buyer or order"></textarea></div>
+        <label id="saveClientRow" style="display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);cursor:pointer;">
+          <input type="checkbox" id="saveClient" checked style="width:auto;"> Save this buyer to Client profiles (if not already saved)
+        </label>
       </div>
 
       <div class="section">
@@ -140,6 +148,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="app.js"></script>
+<script src="clients-data.js"></script>
 <script>
 let items = [];
 let idSeed = 1;
@@ -249,6 +258,25 @@ document.getElementById('notes').addEventListener('input', function(){
   }
 });
 
+/* ---------- Client profiles: pick a saved client to fill the buyer section ---------- */
+let clientProfiles = [];
+const BUYER_FIELDS = {name:'buyerName', brand:'brandName', contact:'buyerContact', phone:'buyerPhone', email:'buyerEmail', gst:'buyerGST', address:'buyerAddress', other:'buyerOther'};
+function applyClient(p){
+  Object.keys(BUYER_FIELDS).forEach(k => document.getElementById(BUYER_FIELDS[k]).value = p[k] || '');
+}
+async function loadClientPicker(){
+  const res = await getClientProfiles();
+  const sel = document.getElementById('clientPick');
+  if(res.error){ sel.disabled = true; sel.options[0].textContent = 'Client profiles are not set up yet (run supabase-add-client-profiles.sql)'; return; }
+  clientProfiles = res.rows;
+  sel.innerHTML = '<option value="">' + (clientProfiles.length ? '— Pick a saved client to fill the details below —' : '— No saved clients yet: fill the details below —') + '</option>' +
+    clientProfiles.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name)}${p.brand ? ' · ' + escHtml(p.brand) : ''}</option>`).join('');
+}
+document.getElementById('clientPick').addEventListener('change', function(){
+  const p = clientProfiles.find(x => x.id === this.value);
+  if(p){ applyClient(p); document.getElementById('saveClient').checked = false; }
+});
+
 async function loadForEdit(id){
   const r = await getRecord(id);
   if(!r){
@@ -265,6 +293,7 @@ async function loadForEdit(id){
   document.getElementById('pageTitle').textContent = 'Edit Proforma Invoice';
   document.getElementById('submitBtn').textContent = 'Save changes →';
   document.getElementById('editHint').style.display = 'block';
+  document.getElementById('saveClient').checked = false;
   pickCompany(r.company);
   document.getElementById('buyerName').value = r.buyerName||'';
   document.getElementById('brandName').value = r.brandName||'';
@@ -331,6 +360,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     submitBtn.textContent = editingId ? 'Save changes →' : 'Generate PI →';
     return;
   }
+  if(document.getElementById('saveClient').checked) await ensureProfileFromPI(record, currentUserName);
   location.href = 'preview.html?id=' + encodeURIComponent(saved.id);
 });
 
@@ -345,6 +375,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
   document.getElementById('creatingAs').textContent = `Creating as ${currentUserName}.`;
   document.getElementById('submitBtn').disabled = false;
 
+  await loadClientPicker();
   const editId = qs('id');
   const today = new Date().toISOString().slice(0,10);
   const plus30 = new Date(Date.now()+30*86400000).toISOString().slice(0,10);
@@ -354,6 +385,8 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     document.getElementById('piDate').value = today;
     document.getElementById('validUntil').value = plus30;
     addItem();
+    const cid = qs('client');
+    if(cid){ const p = clientProfiles.find(x => x.id === cid); if(p){ document.getElementById('clientPick').value = p.id; applyClient(p); document.getElementById('saveClient').checked = false; } }
   }
 })();
 </script>
