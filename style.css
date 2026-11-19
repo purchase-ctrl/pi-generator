@@ -266,4 +266,6 @@ table.log tbody tr:hover{background:#FFF7F1;}
   .notes-wrap{padding-top:6px !important;padding-bottom:8px !important;}
   .notes-wrap p{margin-bottom:3px;}
   .stamp{display:none !important;}
+  /* Payment terms are for the team's screen only; they are not printed or saved in the PDF. */
+  .payment-terms-block{display:none !important;}
 }
