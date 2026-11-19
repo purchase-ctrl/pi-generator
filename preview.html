@@ -141,6 +141,10 @@ function renderInvoice(r){
         <div class="tline" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);"><span>Advance required${advancePctLabel('with')}</span><b>${r.currency}${fmtMoney(r.advanceWithGST)}</b></div>` : ''}
       </div>
     </div>
+    ${r.paymentTerms ? `<div class="notes-wrap" style="padding-bottom:4px;">
+      <div class="k">Payment Terms</div>
+      <p>${escHtml(r.paymentTerms)}</p>
+    </div>` : ''}
     <div class="notes-wrap" style="padding-bottom:12px;">
       <div class="k">Bank Details</div>
       <div style="font-size:.83rem;color:var(--ink);line-height:1.7;">

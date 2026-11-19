@@ -190,6 +190,8 @@ function rowToRecord(row){
     taxPct: row.tax_pct,
     tcVersion: row.tc_version || '',
     notes: row.notes || '',
+    paymentTerms: row.payment_terms || '',
+    _ptKnown: ('payment_terms' in row),
     items: row.items || [],
     subtotal: row.subtotal, tax: row.tax, grandTotal: row.grand_total,
     advanceWithoutGST: row.advance_without_gst, advanceWithGST: row.advance_with_gst,
@@ -223,6 +225,9 @@ function recordToRow(r){
     advance_total: r.advanceTotal, balance_due: r.balanceDue,
     created_by: r.createdBy
   };
+  // payment_terms is only sent when it has text (or the loaded row already has that column), so saving
+  // keeps working even before supabase-add-payment-terms.sql has been run.
+  if(r.paymentTerms || r._ptKnown) row.payment_terms = r.paymentTerms || null;
   if(r.id){
     row.id = r.id;
     row.pi_number = r.piNumber; // editing: keep the number it already has
@@ -278,6 +283,8 @@ async function upsertRecord(record){
       alert('That PI number already exists for this company. Please try saving again.');
     } else if(/brand_name/.test(error.message || '')){
       alert('Save failed: the database is missing the brand_name column. Run supabase-add-brand-name.sql in the Supabase SQL Editor, then try again.');
+    } else if(/payment_terms/.test(error.message || '')){
+      alert('Save failed: the database is missing the payment_terms column. Run supabase-add-payment-terms.sql in the Supabase SQL Editor, then try again.');
     } else {
       alert('Save failed: ' + error.message);
     }

@@ -112,6 +112,14 @@
       </div>
 
       <div class="section">
+        <h3>Payment terms</h3>
+        <div class="field">
+          <label>Payment terms for this PI <span style="font-weight:400;">(can be different on every PI, even for the same client)</span></label>
+          <textarea id="paymentTerms" rows="3" placeholder="e.g. 50% advance with the order, balance before dispatch"></textarea>
+        </div>
+      </div>
+
+      <div class="section">
         <h3>Terms &amp; Conditions</h3>
         <div class="field">
           <label>Select version</label>
@@ -312,6 +320,8 @@ async function loadForEdit(id){
   document.getElementById('taxPct').value = r.taxPct||18;
   document.getElementById('tcVersion').value = r.tcVersion||'';
   document.getElementById('notes').value = r.notes||'';
+  document.getElementById('paymentTerms').value = r.paymentTerms||'';
+  window._ptKnown = !!r._ptKnown;
   items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.unit, i.price, i.advancePct, i.advanceGST));
   renderItemRows();
   updateSummary();
@@ -348,6 +358,8 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     createdBy: currentUserName,
     taxPct,
     notes: document.getElementById('notes').value.trim(),
+    paymentTerms: document.getElementById('paymentTerms').value.trim(),
+    _ptKnown: !!window._ptKnown,
     tcVersion: document.getElementById('tcVersion').value,
     items: items.map(({product,desc,qty,unit,price,advancePct,advanceGST})=>({product,desc,qty,unit,price,advancePct,advanceGST})),
     subtotal: totals.subtotal, tax: totals.tax, grandTotal: totals.grandTotal,
