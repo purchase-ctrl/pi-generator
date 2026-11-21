@@ -44,6 +44,7 @@
 let allRecords = [];
 let currentUserId = null;
 let isAdmin = false;
+let currentUserName = '';
 
 function render(filter){
   const all = allRecords;
@@ -74,8 +75,9 @@ function render(filter){
         ${rows.map(r=>{
           const co = COMPANIES[r.company];
           const mine = (r.userId === currentUserId) || isAdmin;
-          return `<tr>
-            <td data-label="PI number"><b>${escHtml(r.piNumber)}</b></td>
+          const cx = !!r.cancelledAt;
+          return `<tr class="${cx?'cancelled':''}">
+            <td data-label="PI number"><b>${escHtml(r.piNumber)}</b>${cx?' <span class="tag cx">Cancelled</span>':''}</td>
             <td data-label="Date">${fmtDate(r.piDate)}</td>
             <td data-label="Company"><span class="tag ${r.company}">${co.short}</span></td>
             <td data-label="Buyer">${escHtml(r.buyerName)}</td>
@@ -83,8 +85,9 @@ function render(filter){
             <td data-label="Actions">
               ${mine ? `<div class="log-actions">
                 <a href="preview.html?id=${encodeURIComponent(r.id)}">View</a>
-                <a href="index.html?id=${encodeURIComponent(r.id)}">Edit</a>
+                ${cx ? '' : `<a href="index.html?id=${encodeURIComponent(r.id)}">Edit</a>`}
                 <a href="bom-sheet.html?pi=${encodeURIComponent(r.id)}">BOM</a>
+                ${cx ? '' : `<button class="del" onclick="handleCancel('${r.id}')">Cancel PI</button>`}
                 <button class="del" onclick="handleDelete('${r.id}')">Delete</button>
               </div>` : `<span style="font-size:.75rem;color:var(--muted);">— not yours —</span>`}
             </td>
@@ -94,6 +97,16 @@ function render(filter){
     </table>`;
 }
 
+async function handleCancel(id){
+  const rec = allRecords.find(r=>r.id===id);
+  const label = rec ? rec.piNumber : 'this PI';
+  const reason = prompt(`Cancel ${label}?\n\nThe PI stays in the log marked CANCELLED, and its PO is removed from the Order Desk.\n\nReason for cancelling (optional):`);
+  if(reason === null) return;
+  if(await cancelRecord(id, reason.trim(), currentUserName)){
+    allRecords = await getLogSummary();
+    render(document.getElementById('search').value);
+  }
+}
 async function handleDelete(id){
   const rec = allRecords.find(r=>r.id===id);
   const label = rec ? rec.piNumber : 'this PI';
@@ -110,6 +123,7 @@ document.getElementById('search').addEventListener('input', e => render(e.target
   const session = await requireAuth();
   if(!session) return;
   currentUserId = session.user.id;
+  currentUserName = getDisplayName(session);
   isAdmin = await getIsAdmin(currentUserId);
   if(isAdmin) document.getElementById('adminNote').style.display = 'inline';
   allRecords = await getLogSummary();

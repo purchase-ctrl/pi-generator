@@ -191,6 +191,9 @@ function rowToRecord(row){
     tcVersion: row.tc_version || '',
     notes: row.notes || '',
     paymentTerms: row.payment_terms || '',
+    cancelledAt: row.cancelled_at || null,
+    cancelledBy: row.cancelled_by || '',
+    cancelReason: row.cancel_reason || '',
     _ptKnown: ('payment_terms' in row),
     items: row.items || [],
     subtotal: row.subtotal, tax: row.tax, grandTotal: row.grand_total,
@@ -260,7 +263,8 @@ async function getLogSummary(){
     piDate: row.pi_date,
     company: row.company,
     buyerName: row.buyer_name,
-    createdBy: row.created_by
+    createdBy: row.created_by,
+    cancelledAt: row.cancelled_at || null
   }));
 }
 /* Admins can view/edit/delete any PI, not just their own. */
@@ -291,6 +295,16 @@ async function upsertRecord(record){
     return null;
   }
   return rowToRecord(data);
+}
+/* Mark a PI as cancelled. The Order Desk removes that PO the next time it syncs. */
+async function cancelRecord(id, reason, byName){
+  const { error } = await sb.from('pis').update({ cancelled_at: new Date().toISOString(), cancelled_by: byName || null, cancel_reason: reason || null }).eq('id', id);
+  if(error){
+    if(/cancel/.test(error.message || '')) alert('Cancel failed: the database is missing the cancel columns. Run supabase-add-cancel-pi.sql in the Supabase SQL Editor, then try again.');
+    else alert('Cancel failed: ' + error.message);
+    return false;
+  }
+  return true;
 }
 async function deleteRecord(id){
   const { error } = await sb.from('pis').delete().eq('id', id);

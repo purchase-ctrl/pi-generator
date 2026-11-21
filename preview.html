@@ -32,10 +32,13 @@
   <div class="paper-actions">
     <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
     <a class="btn btn-outline" id="editLink" href="#">✎ Edit this PI</a>
+    <button class="btn btn-outline" id="cancelBtn" type="button" style="display:none;color:var(--danger);border-color:var(--danger);">✕ Cancel PI</button>
     <a class="btn btn-outline" id="bomLink" href="#">▤ Make BOM</a>
     <a class="btn btn-outline" href="log.html">☰ Back to Log</a>
     <a class="btn btn-outline" href="index.html">+ New PI</a>
   </div>
+
+  <div class="cancel-banner" id="cancelBanner" style="display:none;"></div>
 
   <div class="paper-outer">
     <div class="paper" id="paper">
@@ -163,7 +166,7 @@ function renderInvoice(r){
 
   paperEl.innerHTML = `
     <div class="paper-head">${headHtml}</div>
-    <div class="paper-body">${bodyHtml}</div>
+    <div class="paper-body">${r.cancelledAt ? '<div class="cancel-mark">CANCELLED</div>' : ''}${bodyHtml}</div>
     <div class="paper-foot">${footHtml}</div>
   `;
 }
@@ -190,6 +193,20 @@ function renderInvoice(r){
     document.getElementById('editLink').href = 'index.html?id=' + encodeURIComponent(r.id);
   } else {
     document.getElementById('editLink').style.display = 'none';
+  }
+  if(r.cancelledAt){
+    document.getElementById('editLink').style.display = 'none';
+    const bn = document.getElementById('cancelBanner');
+    bn.style.display = 'block';
+    bn.innerHTML = `<b>This PI was cancelled</b> on ${fmtDate(r.cancelledAt.slice(0,10))}${r.cancelledBy ? ' by ' + escHtml(r.cancelledBy) : ''}${r.cancelReason ? ' — ' + escHtml(r.cancelReason) : ''}. Its PO has been removed from the Order Desk.`;
+  } else if(r.userId === session.user.id || isAdmin){
+    const cb = document.getElementById('cancelBtn');
+    cb.style.display = '';
+    cb.onclick = async () => {
+      const reason = prompt(`Cancel ${r.piNumber}?\n\nThe PI stays in the log marked CANCELLED, and its PO is removed from the Order Desk.\n\nReason for cancelling (optional):`);
+      if(reason === null) return;
+      if(await cancelRecord(r.id, reason.trim(), getDisplayName(session))) location.reload();
+    };
   }
   document.getElementById('bomLink').href = 'bom-sheet.html?pi=' + encodeURIComponent(r.id);
   renderInvoice(r);

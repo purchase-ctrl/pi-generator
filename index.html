@@ -297,6 +297,11 @@ async function loadForEdit(id){
     location.href = 'preview.html?id=' + encodeURIComponent(id);
     return;
   }
+  if(r.cancelledAt){
+    alert('This PI was cancelled, so it can no longer be edited.');
+    location.href = 'preview.html?id=' + encodeURIComponent(id);
+    return;
+  }
   editingId = id;
   document.getElementById('pageTitle').textContent = 'Edit Proforma Invoice';
   document.getElementById('submitBtn').textContent = 'Save changes →';
