@@ -193,6 +193,12 @@ table.log tbody tr:hover{background:#FFF7F1;}
 .tag.cosmetic{background:#FCE7F1;color:#BE185D;}
 .tag.industries{background:#EDE3F0;color:#6E2C5C;}
 .tag.dyana{background:#FAF0DC;color:#92710F;}
+.tag.cx{background:#FDE2E0;color:#B42318;margin-left:6px;}
+table.log tr.cancelled td{color:var(--muted);}
+table.log tr.cancelled td b{text-decoration:line-through;}
+.cancel-banner{max-width:780px;margin:0 auto 12px;padding:10px 14px;border:1px solid #F3B5B0;background:#FDECEA;color:#8A1C12;border-radius:8px;font-size:.85rem;}
+.paper-body{position:relative;}
+.cancel-mark{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-family:'Fraunces',serif;font-weight:700;font-size:5.5rem;letter-spacing:.08em;color:rgba(200,30,20,.22);border:6px solid rgba(200,30,20,.22);padding:6px 28px;border-radius:12px;pointer-events:none;z-index:5;white-space:nowrap;}
 .log-actions{display:flex;gap:8px;}
 .log-actions a,.log-actions button{
   font-size:.75rem;font-weight:600;padding:6px 11px;border-radius:6px;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--teal-dim);
