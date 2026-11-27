@@ -196,6 +196,7 @@ table.log tbody tr:hover{background:#FFF7F1;}
 .tag.cx{background:#FDE2E0;color:#B42318;margin-left:6px;}
 table.log tr.cancelled td{color:var(--muted);}
 table.log tr.cancelled td b{text-decoration:line-through;}
+.cx-reason{font-size:.72rem;color:var(--muted);margin-top:3px;max-width:260px;white-space:normal;}
 .cancel-banner{max-width:780px;margin:0 auto 12px;padding:10px 14px;border:1px solid #F3B5B0;background:#FDECEA;color:#8A1C12;border-radius:8px;font-size:.85rem;}
 .paper-body{position:relative;}
 .cancel-mark{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-family:'Fraunces',serif;font-weight:700;font-size:5.5rem;letter-spacing:.08em;color:rgba(200,30,20,.22);border:6px solid rgba(200,30,20,.22);padding:6px 28px;border-radius:12px;pointer-events:none;z-index:5;white-space:nowrap;}
@@ -229,7 +230,7 @@ table.log tr.cancelled td b{text-decoration:line-through;}
   @page{ size: A4; margin: 8mm; }
   :root{ font-size:11px; }
   body{background:#fff;}
-  .topbar,.paper-actions,.page-head{display:none !important;}
+  .topbar,.paper-actions,.page-head,.cancel-banner{display:none !important;}
   .page-wrap{padding:0;max-width:100%;}
   .paper{box-shadow:none;max-width:100%;position:relative;}
 

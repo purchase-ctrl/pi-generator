@@ -45,6 +45,7 @@ let allRecords = [];
 let currentUserId = null;
 let isAdmin = false;
 let currentUserName = '';
+let cancelReasons = {};   // { piId: reason } — only holds the reasons this person may see (their own PIs; everything for admins)
 
 function render(filter){
   const all = allRecords;
@@ -77,7 +78,7 @@ function render(filter){
           const mine = (r.userId === currentUserId) || isAdmin;
           const cx = !!r.cancelledAt;
           return `<tr class="${cx?'cancelled':''}">
-            <td data-label="PI number"><b>${escHtml(r.piNumber)}</b>${cx?' <span class="tag cx">Cancelled</span>':''}</td>
+            <td data-label="PI number"><b>${escHtml(r.piNumber)}</b>${cx?' <span class="tag cx">Cancelled</span>':''}${cx && cancelReasons[r.id] ? `<div class="cx-reason">Reason: ${escHtml(cancelReasons[r.id])}</div>` : ''}</td>
             <td data-label="Date">${fmtDate(r.piDate)}</td>
             <td data-label="Company"><span class="tag ${r.company}">${co.short}</span></td>
             <td data-label="Type">${r.piType ? `<span class="tag pt" style="margin-left:0;">${escHtml(r.piType)}</span>` : '<span style="color:var(--muted);">—</span>'}</td>
@@ -101,10 +102,11 @@ function render(filter){
 async function handleCancel(id){
   const rec = allRecords.find(r=>r.id===id);
   const label = rec ? rec.piNumber : 'this PI';
-  const reason = prompt(`Cancel ${label}?\n\nThe PI stays in the log marked CANCELLED, and its PO is removed from the Order Desk.\n\nReason for cancelling (optional):`);
+  const reason = askCancelReason(label);
   if(reason === null) return;
-  if(await cancelRecord(id, reason.trim(), currentUserName)){
+  if(await cancelRecord(id, reason)){
     allRecords = await getLogSummary();
+    cancelReasons = await getCancelReasons();
     render(document.getElementById('search').value);
   }
 }
@@ -128,6 +130,7 @@ document.getElementById('search').addEventListener('input', e => render(e.target
   isAdmin = await getIsAdmin(currentUserId);
   if(isAdmin) document.getElementById('adminNote').style.display = 'inline';
   allRecords = await getLogSummary();
+  cancelReasons = await getCancelReasons();
   render('');
 })();
 </script>
