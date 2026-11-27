@@ -195,7 +195,6 @@ function rowToRecord(row){
     _typeKnown: ('pi_type' in row),
     cancelledAt: row.cancelled_at || null,
     cancelledBy: row.cancelled_by || '',
-    cancelReason: row.cancel_reason || '',
     _ptKnown: ('payment_terms' in row),
     items: row.items || [],
     subtotal: row.subtotal, tax: row.tax, grandTotal: row.grand_total,
@@ -334,15 +333,43 @@ async function removePiType(id){
   return true;
 }
 
-/* Mark a PI as cancelled. The Order Desk removes that PO the next time it syncs. */
-async function cancelRecord(id, reason, byName){
-  const { error } = await sb.from('pis').update({ cancelled_at: new Date().toISOString(), cancelled_by: byName || null, cancel_reason: reason || null }).eq('id', id);
+/* Ask for the cancellation reason. A reason is REQUIRED: keeps asking until one is typed, or returns null if the
+   person backs out. The reason is private: only the PI creator and admins can read it (see supabase-add-cancel-reason.sql). */
+function askCancelReason(label){
+  let msg = `Cancel ${label}?\n\nThe PI stays in the log marked CANCELLED, and its PO is removed from the Order Desk.\n\nReason for cancelling (required; only you and admins can see it):`;
+  for(;;){
+    const reason = prompt(msg);
+    if(reason === null) return null;
+    if(reason.trim().length >= 3) return reason.trim();
+    msg = `A reason is required to cancel ${label}.\n\nPlease type why this PI is being cancelled (at least a few words):`;
+  }
+}
+/* Mark a PI as cancelled with its reason (the database function cancel_pi checks the creator/admin rule and the reason).
+   The Order Desk removes that PO the next time it syncs. */
+async function cancelRecord(id, reason){
+  const { error } = await sb.rpc('cancel_pi', { p_id: id, p_reason: reason });
   if(error){
-    if(/cancel/.test(error.message || '')) alert('Cancel failed: the database is missing the cancel columns. Run supabase-add-cancel-pi.sql in the Supabase SQL Editor, then try again.');
-    else alert('Cancel failed: ' + error.message);
+    if(/cancel_pi|schema cache|does not exist/i.test(error.message || '') && !/required|Only the PI/i.test(error.message || '')){
+      alert('Cancel failed: the database is not set up for cancel reasons yet. Run supabase-add-cancel-reason.sql in the Supabase SQL Editor, then try again.');
+    } else {
+      alert('Cancel failed: ' + error.message);
+    }
     return false;
   }
   return true;
+}
+/* The cancel reason of one PI. Returns '' for everyone except the PI creator and admins (the database hides it). */
+async function getCancelReason(id){
+  const { data, error } = await sb.from('pi_cancel_reasons').select('reason').eq('pi_id', id).maybeSingle();
+  if(error || !data) return '';
+  return data.reason || '';
+}
+/* All cancel reasons the signed-in person is allowed to see, as { piId: reason }. */
+async function getCancelReasons(){
+  const { data, error } = await sb.from('pi_cancel_reasons').select('pi_id,reason');
+  const map = {};
+  if(!error && data) data.forEach(x => { map[x.pi_id] = x.reason; });
+  return map;
 }
 async function deleteRecord(id){
   const { error } = await sb.from('pis').delete().eq('id', id);

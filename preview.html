@@ -199,14 +199,16 @@ function renderInvoice(r){
     document.getElementById('editLink').style.display = 'none';
     const bn = document.getElementById('cancelBanner');
     bn.style.display = 'block';
-    bn.innerHTML = `<b>This PI was cancelled</b> on ${fmtDate(r.cancelledAt.slice(0,10))}${r.cancelledBy ? ' by ' + escHtml(r.cancelledBy) : ''}${r.cancelReason ? ' — ' + escHtml(r.cancelReason) : ''}. Its PO has been removed from the Order Desk.`;
+    const why = await getCancelReason(r.id);   // empty unless you are the PI creator or an admin
+    bn.innerHTML = `<b>This PI was cancelled</b> on ${fmtDate(r.cancelledAt.slice(0,10))}${r.cancelledBy ? ' by ' + escHtml(r.cancelledBy) : ''}. Its PO has been removed from the Order Desk.` +
+      (why ? `<div style="margin-top:6px;"><b>Reason:</b> ${escHtml(why)} <span style="opacity:.7;">(visible only to the PI creator and admins)</span></div>` : '');
   } else if(r.userId === session.user.id || isAdmin){
     const cb = document.getElementById('cancelBtn');
     cb.style.display = '';
     cb.onclick = async () => {
-      const reason = prompt(`Cancel ${r.piNumber}?\n\nThe PI stays in the log marked CANCELLED, and its PO is removed from the Order Desk.\n\nReason for cancelling (optional):`);
+      const reason = askCancelReason(r.piNumber);
       if(reason === null) return;
-      if(await cancelRecord(r.id, reason.trim(), getDisplayName(session))) location.reload();
+      if(await cancelRecord(r.id, reason)) location.reload();
     };
   }
   if(r.piType){ const tn = document.getElementById('typeNote'); tn.style.display = ''; tn.innerHTML = 'PI type: <b>' + escHtml(r.piType) + '</b> <span style="color:var(--muted);">(not printed on the PI)</span>'; }
