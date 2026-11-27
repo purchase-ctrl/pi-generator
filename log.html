@@ -69,7 +69,7 @@ function render(filter){
   wrap.innerHTML = `
     <table class="log">
       <thead><tr>
-        <th>PI number</th><th>Date</th><th>Company</th><th>Buyer</th><th>Created by</th><th></th>
+        <th>PI number</th><th>Date</th><th>Company</th><th>Type</th><th>Buyer</th><th>Created by</th><th></th>
       </tr></thead>
       <tbody>
         ${rows.map(r=>{
@@ -80,6 +80,7 @@ function render(filter){
             <td data-label="PI number"><b>${escHtml(r.piNumber)}</b>${cx?' <span class="tag cx">Cancelled</span>':''}</td>
             <td data-label="Date">${fmtDate(r.piDate)}</td>
             <td data-label="Company"><span class="tag ${r.company}">${co.short}</span></td>
+            <td data-label="Type">${r.piType ? `<span class="tag pt" style="margin-left:0;">${escHtml(r.piType)}</span>` : '<span style="color:var(--muted);">—</span>'}</td>
             <td data-label="Buyer">${escHtml(r.buyerName)}</td>
             <td data-label="Created by">${escHtml(r.createdBy)}</td>
             <td data-label="Actions">

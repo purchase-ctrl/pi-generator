@@ -27,6 +27,7 @@
   <div class="page-head">
     <h2>② Result</h2>
     <p>This is the generated Proforma Invoice — the header and footer match the selected company automatically.</p>
+    <p id="typeNote" style="display:none;"></p>
   </div>
 
   <div class="paper-actions">
@@ -208,6 +209,7 @@ function renderInvoice(r){
       if(await cancelRecord(r.id, reason.trim(), getDisplayName(session))) location.reload();
     };
   }
+  if(r.piType){ const tn = document.getElementById('typeNote'); tn.style.display = ''; tn.innerHTML = 'PI type: <b>' + escHtml(r.piType) + '</b> <span style="color:var(--muted);">(not printed on the PI)</span>'; }
   document.getElementById('bomLink').href = 'bom-sheet.html?pi=' + encodeURIComponent(r.id);
   renderInvoice(r);
   /* The browser uses the page title as the default file name when saving as PDF: "PI -005 - Brand name". */

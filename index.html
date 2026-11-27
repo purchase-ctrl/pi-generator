@@ -105,6 +105,23 @@
       </div>
 
       <div class="section">
+        <h3>PI type</h3>
+        <div class="field">
+          <label>Type of PI <a href="#" id="typeEditToggle" style="font-weight:500;color:var(--coral);margin-left:6px;">edit list</a></label>
+          <select id="piType"><option value="">— Select PI type —</option></select>
+        </div>
+        <div id="typeEditor" class="type-editor" style="display:none;">
+          <div class="type-editor-head">Edit the PI type list <span>Anyone can add a type. A type can be removed only by whoever added it, or an admin.</span></div>
+          <div id="typeChips" class="type-chips"></div>
+          <div class="type-add">
+            <input id="newTypeName" placeholder="New type, e.g. Labels" maxlength="60">
+            <button type="button" id="addTypeBtn">+ Add</button>
+          </div>
+          <div id="typeMsg" class="type-msg"></div>
+        </div>
+      </div>
+
+      <div class="section">
         <h3>Items</h3>
         <div id="itemRows"></div>
         <button type="button" class="add-item" onclick="addItem()">+ Add line item</button>
@@ -327,10 +344,69 @@ async function loadForEdit(id){
   document.getElementById('notes').value = r.notes||'';
   document.getElementById('paymentTerms').value = r.paymentTerms||'';
   window._ptKnown = !!r._ptKnown;
+  window._typeKnown = !!r._typeKnown;
+  setPiType(r.piType);
   items = (r.items||[]).map(i=>newItem(i.product, i.desc, i.qty, i.unit, i.price, i.advancePct, i.advanceGST));
   renderItemRows();
   updateSummary();
 }
+
+/* ---------- PI type drop-down + list editor ---------- */
+let piTypesReady = true;
+function setPiType(name){
+  const sel = document.getElementById('piType');
+  name = name || '';
+  // a PI may carry a type that has since been removed from the list: keep it selectable
+  if(name && !Array.from(sel.options).some(o => o.value === name)){
+    const o = document.createElement('option'); o.value = name; o.textContent = name + ' (not in list)'; sel.appendChild(o);
+  }
+  sel.value = name;
+}
+async function loadPiTypes(){
+  const sel = document.getElementById('piType');
+  const keep = sel.value;
+  const res = await getPiTypes();
+  piTypesReady = res.ready;
+  window._piTypes = res.types;
+  sel.innerHTML = '<option value="">— Select PI type —</option>' +
+    res.types.map(t => `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('');
+  setPiType(keep);
+  renderTypeEditor();
+}
+function renderTypeEditor(){
+  const wrap = document.getElementById('typeChips');
+  const msg = document.getElementById('typeMsg');
+  msg.textContent = piTypesReady ? '' : 'The shared list is not set up yet. Run supabase-add-pi-type.sql in Supabase to enable adding and removing types.';
+  document.getElementById('newTypeName').disabled = !piTypesReady;
+  document.getElementById('addTypeBtn').disabled = !piTypesReady;
+  wrap.innerHTML = (window._piTypes || []).map(t => {
+    const canRemove = piTypesReady && t.id && (isCurrentUserAdmin || t.createdBy === currentUserId);
+    return `<span class="type-chip">${escHtml(t.name)}${canRemove ? ` <button type="button" class="type-x" title="Remove this type" data-id="${escHtml(t.id)}" data-name="${escHtml(t.name)}">×</button>` : ''}</span>`;
+  }).join('');
+}
+document.getElementById('typeEditToggle').addEventListener('click', e => {
+  e.preventDefault();
+  const ed = document.getElementById('typeEditor');
+  ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('typeChips').addEventListener('click', async e => {
+  const b = e.target.closest('.type-x'); if(!b) return;
+  if(!confirm(`Remove "${b.dataset.name}" from the PI type list?\n\nPIs that already use it keep their type.`)) return;
+  if(await removePiType(b.dataset.id)){
+    const sel = document.getElementById('piType');
+    if(sel.value === b.dataset.name) sel.value = '';   // the removed type was selected on this form: clear it
+    await loadPiTypes();
+  }
+});
+async function addTypeFromInput(){
+  const inp = document.getElementById('newTypeName');
+  const name = inp.value.trim().replace(/\s+/g,' ');
+  if(!name) return;
+  if((window._piTypes||[]).some(t => t.name.toLowerCase() === name.toLowerCase())){ alert('That PI type already exists.'); return; }
+  if(await addPiType(name, currentUserId, currentUserName)){ inp.value = ''; await loadPiTypes(); setPiType(name); }
+}
+document.getElementById('addTypeBtn').addEventListener('click', addTypeFromInput);
+document.getElementById('newTypeName').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addTypeFromInput(); } });
 
 document.getElementById('piForm').addEventListener('submit', async function(e){
   e.preventDefault();
@@ -365,6 +441,8 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
     notes: document.getElementById('notes').value.trim(),
     paymentTerms: document.getElementById('paymentTerms').value.trim(),
     _ptKnown: !!window._ptKnown,
+    piType: document.getElementById('piType').value,
+    _typeKnown: !!window._typeKnown,
     tcVersion: document.getElementById('tcVersion').value,
     items: items.map(({product,desc,qty,unit,price,advancePct,advanceGST})=>({product,desc,qty,unit,price,advancePct,advanceGST})),
     subtotal: totals.subtotal, tax: totals.tax, grandTotal: totals.grandTotal,
@@ -393,6 +471,7 @@ document.getElementById('piForm').addEventListener('submit', async function(e){
   document.getElementById('submitBtn').disabled = false;
 
   await loadClientPicker();
+  await loadPiTypes();
   const editId = qs('id');
   const today = new Date().toISOString().slice(0,10);
   const plus30 = new Date(Date.now()+30*86400000).toISOString().slice(0,10);
