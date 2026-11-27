@@ -191,6 +191,8 @@ function rowToRecord(row){
     tcVersion: row.tc_version || '',
     notes: row.notes || '',
     paymentTerms: row.payment_terms || '',
+    piType: row.pi_type || '',
+    _typeKnown: ('pi_type' in row),
     cancelledAt: row.cancelled_at || null,
     cancelledBy: row.cancelled_by || '',
     cancelReason: row.cancel_reason || '',
@@ -231,6 +233,8 @@ function recordToRow(r){
   // payment_terms is only sent when it has text (or the loaded row already has that column), so saving
   // keeps working even before supabase-add-payment-terms.sql has been run.
   if(r.paymentTerms || r._ptKnown) row.payment_terms = r.paymentTerms || null;
+  // same idea for pi_type: only sent when set (or the loaded row already has the column)
+  if(r.piType || r._typeKnown) row.pi_type = r.piType || null;
   if(r.id){
     row.id = r.id;
     row.pi_number = r.piNumber; // editing: keep the number it already has
@@ -264,7 +268,8 @@ async function getLogSummary(){
     company: row.company,
     buyerName: row.buyer_name,
     createdBy: row.created_by,
-    cancelledAt: row.cancelled_at || null
+    cancelledAt: row.cancelled_at || null,
+    piType: row.pi_type || ''
   }));
 }
 /* Admins can view/edit/delete any PI, not just their own. */
@@ -287,6 +292,8 @@ async function upsertRecord(record){
       alert('That PI number already exists for this company. Please try saving again.');
     } else if(/brand_name/.test(error.message || '')){
       alert('Save failed: the database is missing the brand_name column. Run supabase-add-brand-name.sql in the Supabase SQL Editor, then try again.');
+    } else if(/pi_type/.test(error.message || '')){
+      alert('Save failed: the database is missing the pi_type column. Run supabase-add-pi-type.sql in the Supabase SQL Editor, then try again.');
     } else if(/payment_terms/.test(error.message || '')){
       alert('Save failed: the database is missing the payment_terms column. Run supabase-add-payment-terms.sql in the Supabase SQL Editor, then try again.');
     } else {
@@ -296,6 +303,37 @@ async function upsertRecord(record){
   }
   return rowToRecord(data);
 }
+/* ===================== PI types (shared drop-down list, table public.pi_types) =====================
+   Anyone signed in can add a type; a type can be removed only by whoever added it, or an admin.
+   A PI stores the type NAME, so removing a type from the list never changes old PIs. */
+const DEFAULT_PI_TYPES = ['FG (Finished Good)', 'Primary Packaging', 'Secondary Packaging', 'RM+C', 'All Four'];
+
+/* Returns { types:[{id,name,createdBy}], ready:boolean }. ready=false means the table doesn't exist yet
+   (supabase-add-pi-type.sql not run): the form then falls back to the built-in list so PIs still save. */
+async function getPiTypes(){
+  const { data, error } = await sb.from('pi_types').select('id,name,created_by,sort_order').order('sort_order').order('name');
+  if(error || !data){
+    return { ready:false, types: DEFAULT_PI_TYPES.map(n => ({ id:null, name:n, createdBy:null })) };
+  }
+  return { ready:true, types: data.map(t => ({ id:t.id, name:t.name, createdBy:t.created_by })) };
+}
+async function addPiType(name, userId, userName){
+  const { error } = await sb.from('pi_types').insert({ name, created_by: userId, created_by_name: userName || null, sort_order: 100 });
+  if(error){
+    if(error.code === '23505') alert('That PI type already exists.');
+    else alert('Could not add the type: ' + error.message);
+    return false;
+  }
+  return true;
+}
+async function removePiType(id){
+  // .select() so we can tell "removed" from "not allowed" (RLS silently matches 0 rows)
+  const { data, error } = await sb.from('pi_types').delete().eq('id', id).select('id');
+  if(error){ alert('Could not remove the type: ' + error.message); return false; }
+  if(!data || data.length === 0){ alert('Only the person who added this type, or an admin, can remove it.'); return false; }
+  return true;
+}
+
 /* Mark a PI as cancelled. The Order Desk removes that PO the next time it syncs. */
 async function cancelRecord(id, reason, byName){
   const { error } = await sb.from('pis').update({ cancelled_at: new Date().toISOString(), cancelled_by: byName || null, cancel_reason: reason || null }).eq('id', id);

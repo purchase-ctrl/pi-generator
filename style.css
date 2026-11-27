@@ -275,3 +275,18 @@ table.log tr.cancelled td b{text-decoration:line-through;}
   /* Payment terms are for the team's screen only; they are not printed or saved in the PDF. */
   .payment-terms-block{display:none !important;}
 }
+
+/* PI type list editor */
+.type-editor{margin-top:-2px;margin-bottom:6px;padding:12px 14px;background:#F3EFE7;border:1px solid var(--line);border-radius:8px;}
+.type-editor-head{font-size:.78rem;font-weight:700;color:var(--teal-dim);margin-bottom:8px;}
+.type-editor-head span{display:block;font-weight:400;color:var(--muted);margin-top:2px;}
+.type-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.type-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:#fff;}
+.type-x{width:auto !important;border:0;background:none;color:var(--muted);font-size:1rem;line-height:1;cursor:pointer;padding:0 2px;}
+.type-x:hover{color:var(--danger,#B42318);}
+.type-add{display:flex;gap:8px;}
+.type-add input{flex:1;}
+.type-add button{width:auto !important;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;cursor:pointer;}
+.type-add button:hover:not(:disabled){border-color:var(--coral);color:var(--coral);}
+.type-msg{font-size:.74rem;color:var(--danger,#B42318);margin-top:6px;}
+.tag.pt{background:#E6EEF0;color:#2F5D62;margin-left:6px;}
